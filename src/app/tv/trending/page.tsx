@@ -76,7 +76,7 @@ export default function TrendingTVShowsPage() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading trending TV shows...</div>;
+    return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading trending TV shows...</div>;
   }
 
   return (

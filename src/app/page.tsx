@@ -48,7 +48,7 @@ export default function HomePage() {
   }, [isSearching]);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading movies...</div>;
+    return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading movies...</div>;
   }
 
   const posterBaseUrl = "https://image.tmdb.org/t/p/w300";
@@ -89,7 +89,7 @@ export default function HomePage() {
     <main className="p-8 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen">
       <header
         className="mb-12 text-center bg-cover bg-center bg-no-repeat p-6 sm:p-12 rounded-lg"
-        style={{ backgroundImage: trending.length > 1 ? `url(https://image.tmdb.org/t/p/original${trending[1].poster_path})` : (trending.length > 0 ? `url(https://image.tmdb.org/t/p/original${trending[0].poster_path})` : undefined) }}
+        style={{ backgroundImage: trending.length > 0 ? `url(https://image.tmdb.org/t/p/original${trending[Math.floor(Math.random() * trending.length)].poster_path})` : undefined }}
       >
         <h1 className="text-3xl sm:text-5xl font-extrabold mb-4 text-white drop-shadow-lg rainbow-text">Welcome.</h1>
         <p className="text-base sm:text-xl max-w-xl mx-auto mb-6 drop-shadow-lg rainbow-text">
@@ -137,23 +137,27 @@ export default function HomePage() {
                   title={movie.title}
                   onClick={() => handleMovieClick(movie.id)}
                 >
-                  {movie.poster_path ? (
-                    <img
-                      src={posterBaseUrl + movie.poster_path}
-                      alt={movie.title}
-                      className="rounded-t-lg shadow-lg"
-                    />
-                  ) : (
-                    <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
-                      No Image
-                    </div>
-                  )}
-                  <div className="p-3">
-                    <p className="text-lg font-semibold truncate">{movie.title}</p>
-                    <p className="text-sm text-indigo-400">
-                      {movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}
-                    </p>
-                  </div>
+              {movie.poster_path ? (
+                <img
+                  src={posterBaseUrl + movie.poster_path}
+                  alt={movie.title}
+                  className="rounded-t-lg shadow-lg"
+                />
+              ) : (
+                <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
+                  No Image
+                </div>
+              )}
+              <div className="p-3 relative">
+                <div className="absolute top-2 right-2 w-10 h-10 rounded-full border-4 border-green-500 flex items-center justify-center text-white font-bold text-sm shadow-lg bg-gray-900">
+                  {/* Assuming movie.vote_average is available here */}
+                  {typeof movie.vote_average === "number" ? movie.vote_average.toFixed(1) : "N/A"}
+                </div>
+                <p className="text-lg font-semibold truncate">{movie.title}</p>
+                <p className="text-sm text-indigo-400">
+                  {movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}
+                </p>
+              </div>
                 </div>
               ))}
             </div>

@@ -20,6 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Features Added
+
+- Responsive homepage header with animated rainbow text.
+- Responsive search bar on homepage and Trending TV Shows page.
+- Search functionality on Trending TV Shows page to search any TV series dynamically.
+- Navbar updated with HOME text and home icon.
+- Smaller footer for better UI.
+- Styled scrollbars globally.
+- Background gradient applied consistently on homepage, TV show details, and Trending TV Shows pages.
+- TV show details page enhanced with season dropdown and episode dropdown for better navigation.
+- YouTube trailer integration and streaming player for episodes.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

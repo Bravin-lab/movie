@@ -33,6 +33,10 @@ export async function getMovieDetails(movieId: number): Promise<any> {
   return fetchFromTMDB('movie/' + movieId, { append_to_response: 'credits' });
 }
 
+export async function getMovieReviews(movieId: number): Promise<any> {
+  return fetchFromTMDB(`movie/${movieId}/reviews`);
+}
+
 export async function searchTVShows(query: string, page: number = 1): Promise<any> {
   return fetchFromTMDB('search/tv', { query, page: page.toString() });
 }

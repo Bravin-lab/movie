@@ -31,7 +31,7 @@ export default function PopularPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading popular movies...</div>;
+    return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading popular movies...</div>;
   }
 
   const posterBaseUrl = "https://image.tmdb.org/t/p/w300";

@@ -4,12 +4,14 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTVShowDetails, getTVShowSeasonDetails } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
+import { FaPlay } from "react-icons/fa";
 
 interface TVShowDetails {
   id: number;
   name: string;
   overview: string;
   first_air_date: string;
+  vote_average: number;
   genres: { id: number; name: string }[];
   credits: {
     cast: { id: number; name: string; character: string; profile_path: string | null }[];
@@ -105,7 +107,7 @@ export default function TVShowDetailsPage({ params }: Props) {
   }, [tvShow, selectedSeason, selectedEpisode]);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading TV show details...</div>;
+    return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading TV show details...</div>;
   }
 
   if (!tvShow) {
@@ -142,7 +144,55 @@ export default function TVShowDetailsPage({ params }: Props) {
 
         <div className="flex-1 max-w-full overflow-x-auto">
           <h1 className="text-6xl font-extrabold mb-8 tracking-tight">{tvShow.name}</h1>
-          <p className="text-indigo-400 mb-5 text-lg">First Air Date: {tvShow.first_air_date || "N/A"}</p>
+          <p className="text-indigo-400 mb-5 text-lg flex items-center gap-4">
+            First Air Date: {tvShow.first_air_date || "N/A"} | 
+            <span className="flex items-center gap-2">
+              User Score:
+              {tvShow.vote_average !== undefined && tvShow.vote_average !== null ? (
+                <svg
+                  className="w-8 h-8"
+                  viewBox="0 0 36 36"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    className="text-gray-700"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    fill="none"
+                  />
+                  <circle
+                    className="text-green-500"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    fill="none"
+                    strokeDasharray="94.2"
+                    strokeDashoffset={94.2 - (tvShow.vote_average / 10) * 94.2}
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                  <text
+                    x="18"
+                    y="22"
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill="white"
+                    fontWeight="bold"
+                  >
+                    {tvShow.vote_average.toFixed(1)}
+                  </text>
+                </svg>
+              ) : (
+                <span>N/A</span>
+              )}
+            </span>
+          </p>
           <p className="mb-8 text-xl leading-relaxed">{tvShow.overview}</p>
 
           <h2 className="text-4xl font-bold mb-6">Genres</h2>
@@ -216,9 +266,19 @@ export default function TVShowDetailsPage({ params }: Props) {
               <h2 className="text-4xl font-bold mb-6">Trailer</h2>
               <button
                 onClick={toggleYouTubePlayer}
-                className="mb-4 px-6 py-3 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition font-semibold"
+                className="mb-4 px-8 py-3 bg-indigo-600 rounded-full hover:bg-indigo-700 transition font-semibold flex items-center gap-3 justify-center shadow-lg shadow-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               >
-                {showYouTubePlayer ? "Hide YouTube Trailer" : "Play YouTube Trailer"}
+                {showYouTubePlayer ? (
+                  <>
+                    <FaPlay className="animate-pulse" />
+                    Hide Trailer
+                  </>
+                ) : (
+                  <>
+                    <FaPlay className="animate-pulse" />
+                    Play Trailer
+                  </>
+                )}
               </button>
               {showYouTubePlayer && (
                 <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-2xl">
@@ -240,9 +300,19 @@ export default function TVShowDetailsPage({ params }: Props) {
               <h2 className="text-4xl font-bold mb-6">Watch Now</h2>
               <button
                 onClick={toggleStreamingPlayer}
-                className="mb-4 px-6 py-3 bg-green-600 rounded-lg hover:bg-green-700 transition font-semibold"
+                className="mb-4 px-6 py-3 bg-green-600 rounded-lg hover:bg-green-700 transition font-semibold flex items-center gap-2"
               >
-                {showStreamingPlayer ? "Hide Streaming Player" : "Play Episode"}
+                {showStreamingPlayer ? (
+                  <>
+                    <FaPlay />
+                    Hide Streaming Player
+                  </>
+                ) : (
+                  <>
+                    <FaPlay />
+                    Play Episode
+                  </>
+                )}
               </button>
               {showStreamingPlayer && (
                 <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-2xl">

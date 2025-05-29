@@ -73,6 +73,13 @@ export default function Navbar() {
               <FiUserPlus className="mr-2" />
               Sign Up
             </Link>
+            <Link
+              href="/dashboard"
+              className="px-3 py-1 rounded hover:bg-indigo-600 transition"
+              onClick={() => setIsOpen(false)}
+            >
+              Dashboard
+            </Link>
           </div>
         </div>
       )}

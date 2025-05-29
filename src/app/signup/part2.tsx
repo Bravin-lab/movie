@@ -1,38 +1,4 @@
-"use client";
-
-import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-
-export default function SignupPage() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    if (!username) {
-      setError('Username is required');
-      setLoading(false);
-      return;
-    }
-    if (!email) {
-      setError('Email is required');
-      setLoading(false);
-      return;
-    }
-    if (!password) {
-      setError('Password is required');
-      setLoading(false);
-      return;
-    }
-
-    const { error: signUpError, data } = await supabase.auth.signUp({
+const { error: signUpError, data } = await supabase.auth.signUp({
       email,
       password,
     });
@@ -43,13 +9,12 @@ export default function SignupPage() {
       return;
     }
 
-    // Insert into user_profiles table with exact column names
+    // Insert into user_profiles table instead of custom users table
     const { error: insertError } = await supabase.from('user_profiles').insert([
       {
         id: data.user?.id,
-        FullName: username,
-        Email: email,
-        Phone: phone || null,
+        full_name: username,
+        email: email,
       },
     ]);
 
@@ -102,19 +67,6 @@ export default function SignupPage() {
               className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
               placeholder="you@example.com"
               required
-            />
-          </div>
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Phone
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-              placeholder="Your phone number"
             />
           </div>
           <div>

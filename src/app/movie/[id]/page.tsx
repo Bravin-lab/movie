@@ -4,12 +4,14 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMovieDetails } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
+import { FaPlay } from "react-icons/fa";
 
 interface MovieDetails {
   id: number;
   title: string;
   overview: string;
   release_date: string;
+  vote_average: number;
   genres: { id: number; name: string }[];
   credits: {
     cast: { id: number; name: string; character: string; profile_path: string | null }[];
@@ -18,17 +20,18 @@ interface MovieDetails {
     results: { id: string; key: string; name: string; site: string; type: string }[];
   };
   poster_path: string | null;
+  backdrop_path: string | null;
   streamingUrl?: string;
 }
 
 interface Props {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 }
 
 export default function MovieDetailsPage({ params }: Props) {
-  const unwrappedParams = React.use(params);
+  const unwrappedParams = React.use(params) as { id: string };
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [showYouTubePlayer, setShowYouTubePlayer] = useState(false);
@@ -72,7 +75,7 @@ export default function MovieDetailsPage({ params }: Props) {
   }, [movie]);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading movie details...</div>;
+    return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading movie details...</div>;
   }
 
   if (!movie) {
@@ -93,6 +96,14 @@ export default function MovieDetailsPage({ params }: Props) {
 
   function toggleStreamingPlayer() {
     setShowStreamingPlayer((prev) => !prev);
+  }
+
+  async function addToWatchlist() {
+    alert("Watchlist functionality is currently unavailable.");
+  }
+
+  async function addToFavorites() {
+    alert("Favorites functionality is currently unavailable.");
   }
 
   return (
@@ -119,7 +130,55 @@ export default function MovieDetailsPage({ params }: Props) {
 
         <div className="flex-1 max-w-full overflow-x-auto">
           <h1 className="text-6xl font-extrabold mb-8 tracking-tight">{movie.title}</h1>
-          <p className="text-indigo-400 mb-5 text-lg">Release Date: {movie.release_date || "N/A"}</p>
+          <p className="text-indigo-400 mb-5 text-lg flex items-center gap-4">
+            Release Date: {movie.release_date || "N/A"} | 
+            <span className="flex items-center gap-2">
+              User Score:
+              {movie.vote_average !== undefined && movie.vote_average !== null ? (
+                <svg
+                  className="w-8 h-8"
+                  viewBox="0 0 36 36"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle
+                    className="text-gray-700"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    fill="none"
+                  />
+                  <circle
+                    className="text-green-500"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    fill="none"
+                    strokeDasharray="94.2"
+                    strokeDashoffset={94.2 - (movie.vote_average / 10) * 94.2}
+                    style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                  />
+                  <text
+                    x="18"
+                    y="22"
+                    textAnchor="middle"
+                    fontSize="10"
+                    fill="white"
+                    fontWeight="bold"
+                  >
+                    {movie.vote_average.toFixed(1)}
+                  </text>
+                </svg>
+              ) : (
+                <span>N/A</span>
+              )}
+            </span>
+          </p>
           <p className="mb-8 text-xl leading-relaxed">{movie.overview}</p>
 
           <h2 className="text-4xl font-bold mb-6">Genres</h2>
@@ -135,17 +194,17 @@ export default function MovieDetailsPage({ params }: Props) {
           </ul>
 
           <h2 className="text-4xl font-bold mb-6">Cast</h2>
-          <div className="flex overflow-x-auto space-x-8 mb-14">
+          <div className="flex overflow-x-auto space-x-8 mb-14 justify-start max-w-screen-xl">
             {movie.credits.cast.slice(0, 10).map((cast) => (
-              <div key={cast.id} className="min-w-[120px] text-center">
+              <div key={cast.id} className="min-w-[120px] text-left">
                 {cast.profile_path ? (
                   <img
                     src={posterBaseUrl + cast.profile_path}
                     alt={cast.name}
-                    className="rounded-lg mx-auto mb-3 shadow-lg"
+                    className="rounded-lg mb-3 shadow-lg"
                   />
                 ) : (
-                  <div className="bg-gray-700 h-32 w-24 rounded-lg mx-auto mb-3 flex items-center justify-center text-gray-400">
+                  <div className="bg-gray-700 h-32 w-24 rounded-lg mb-3 flex items-center justify-center text-gray-400">
                     No Image
                   </div>
                 )}
@@ -155,10 +214,19 @@ export default function MovieDetailsPage({ params }: Props) {
             ))}
           </div>
 
-          <div className="mb-4 text-sm text-gray-400">
-            <p>DEBUG: YouTube API Key: {process.env.NEXT_PUBLIC_YOUTUBE_API_KEY ? "SET" : "NOT SET"}</p>
-            <p>DEBUG: YouTube Video ID: {youtubeVideoId || "None"}</p>
-            <p>DEBUG: Streaming URL: {movie.streamingUrl || "None"}</p>
+          <div className="flex gap-4 mb-8">
+            <button
+              onClick={addToWatchlist}
+              className="px-6 py-3 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition font-semibold"
+            >
+              Add to Watchlist
+            </button>
+            <button
+              onClick={addToFavorites}
+              className="px-6 py-3 bg-yellow-400 rounded-lg hover:bg-yellow-500 transition font-semibold"
+            >
+              Add to Favorites
+            </button>
           </div>
 
           {trailer ? (
@@ -178,18 +246,28 @@ export default function MovieDetailsPage({ params }: Props) {
               <h2 className="text-4xl font-bold mb-6">Trailer</h2>
               <button
                 onClick={toggleYouTubePlayer}
-                className="mb-4 px-6 py-3 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition font-semibold"
+                className="mb-4 px-8 py-3 bg-indigo-600 rounded-full hover:bg-indigo-700 transition font-semibold flex items-center gap-3 justify-center shadow-lg shadow-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
               >
-                {showYouTubePlayer ? "Hide YouTube Trailer" : "Play YouTube Trailer"}
+                {showYouTubePlayer ? (
+                  <>
+                    <FaPlay className="animate-pulse" />
+                    Hide Trailer
+                  </>
+                ) : (
+                  <>
+                    <FaPlay className="animate-pulse" />
+                    Play Trailer
+                  </>
+                )}
               </button>
               {showYouTubePlayer && (
                 <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-2xl">
                   <iframe
-                    src={`https://www.youtube.com/embed/${youtubeVideoId}`}
-                    title={`${movie.title} YouTube Trailer`}
-                    allowFullScreen
-                    className="w-full h-72 md:h-96"
-                  />
+                  src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+                  title={`${movie.title} YouTube Trailer`}
+                  allowFullScreen
+                  className="w-full h-72 md:h-96"
+                />
                 </div>
               )}
             </div>
@@ -200,12 +278,24 @@ export default function MovieDetailsPage({ params }: Props) {
           {movie.streamingUrl && (
             <div>
               <h2 className="text-4xl font-bold mb-6">Watch Now</h2>
-              <button
-                onClick={toggleStreamingPlayer}
-                className="mb-4 px-6 py-3 bg-green-600 rounded-lg hover:bg-green-700 transition font-semibold"
-              >
-                {showStreamingPlayer ? "Hide Streaming Player" : "Play Movie"}
-              </button>
+              <div className="flex flex-wrap gap-4 mb-4">
+                <button
+                  onClick={toggleStreamingPlayer}
+                  className="px-8 py-3 bg-green-600 rounded-full hover:bg-green-700 transition font-semibold flex items-center gap-3 justify-center shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400"
+                >
+                  {showStreamingPlayer ? (
+                    <>
+                      <FaPlay className="animate-pulse" />
+                      Hide Streaming Player
+                    </>
+                  ) : (
+                    <>
+                      <FaPlay className="animate-pulse" />
+                      Play Movie
+                    </>
+                  )}
+                </button>
+              </div>
               {showStreamingPlayer && (
                 <div className="aspect-w-16 aspect-h-9 rounded-lg overflow-hidden shadow-2xl">
                   <iframe

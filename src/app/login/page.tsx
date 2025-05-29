@@ -45,10 +45,15 @@ export default function LoginPage() {
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">Log In</h2>
         {error && <p className="mb-4 text-red-600">{error}</p>}
         <form onSubmit={handleLogin} className="space-y-6 text-gray-900">
-        <p className="mt-4 text-center text-sm text-gray-700">
+          <p className="mt-4 text-center text-sm text-gray-700">
           You don't have an account?{' '}
           <a href="/signup" className="text-indigo-600 hover:underline">
             Sign up
+          </a>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-700">
+          <a href="/reset-password" className="text-indigo-600 hover:underline">
+            Forgot Password?
           </a>
         </p>
           <div>
