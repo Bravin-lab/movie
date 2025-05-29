@@ -7,7 +7,7 @@ export default function SignupPagePart1() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -30,3 +30,10 @@ export default function SignupPagePart1() {
       setLoading(false);
       return;
     }
+
+    // Proceed with signup logic here or navigate to next signup step
+    // For example, you might want to save these details in context or local storage
+    // and navigate to part2 of signup
+
+    setLoading(false);
+  };
