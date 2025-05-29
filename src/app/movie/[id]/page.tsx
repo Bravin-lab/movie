@@ -1,5 +1,11 @@
 "use client";
 
+"use client";
+
+"use client";
+
+import Image from "next/image";
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMovieDetails } from "@/lib/tmdb";
@@ -116,11 +122,14 @@ export default function MovieDetailsPage({ params }: Props) {
       </button>
 
       <div className="flex flex-col lg:flex-row gap-12">
-        {movie.poster_path ? (
-          <img
+          {movie.poster_path ? (
+          <Image
             src={posterBaseUrl + movie.poster_path}
             alt={movie.title}
+            width={300}
+            height={450}
             className="rounded-lg shadow-2xl w-full lg:w-1/3"
+            priority
           />
         ) : (
           <div className="bg-gray-700 h-72 rounded-lg flex items-center justify-center text-gray-400 w-full lg:w-1/3">
@@ -198,10 +207,13 @@ export default function MovieDetailsPage({ params }: Props) {
             {movie.credits.cast.slice(0, 10).map((cast) => (
               <div key={cast.id} className="min-w-[120px] text-left">
                 {cast.profile_path ? (
-                  <img
+                  <Image
                     src={posterBaseUrl + cast.profile_path}
                     alt={cast.name}
+                    width={96}
+                    height={128}
                     className="rounded-lg mb-3 shadow-lg"
+                    priority
                   />
                 ) : (
                   <div className="bg-gray-700 h-32 w-24 rounded-lg mb-3 flex items-center justify-center text-gray-400">
