@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getTVShowDetails, getTVShowSeasonDetails } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
 import { FaPlay } from "react-icons/fa";
+import Image from "next/image";
 
 interface TVShowDetails {
   id: number;
@@ -48,9 +49,13 @@ export default function TVShowDetailsPage({ params }: Props) {
     async function fetchDetails() {
       try {
         const data = await getTVShowDetails(Number(unwrappedParams.id));
-        setTVShow(data);
-        if (data.seasons && data.seasons.length > 0) {
-          setSelectedSeason(data.seasons[0].season_number);
+        setTVShow({
+          ...data,
+          genres: (data as any).genres || [],
+          seasons: (data as any).seasons || [],
+        } as TVShowDetails);
+        if ((data as any).seasons && (data as any).seasons.length > 0) {
+          setSelectedSeason((data as any).seasons[0].season_number);
         }
       } catch (error) {
         console.error("Failed to fetch TV show details", error);
@@ -131,10 +136,13 @@ export default function TVShowDetailsPage({ params }: Props) {
 
       <div className="flex flex-col lg:flex-row gap-12">
         {tvShow.poster_path ? (
-          <img
+          <Image
             src={posterBaseUrl + tvShow.poster_path}
             alt={tvShow.name}
+            width={300}
+            height={450}
             className="rounded-lg shadow-2xl w-full lg:w-1/3"
+            priority
           />
         ) : (
           <div className="bg-gray-700 h-72 rounded-lg flex items-center justify-center text-gray-400 w-full lg:w-1/3">
@@ -212,10 +220,13 @@ export default function TVShowDetailsPage({ params }: Props) {
             {tvShow.credits.cast.slice(0, 10).map((cast) => (
               <div key={cast.id} className="min-w-[120px] text-center">
                 {cast.profile_path ? (
-                  <img
+                  <Image
                     src={posterBaseUrl + cast.profile_path}
                     alt={cast.name}
+                    width={96}
+                    height={128}
                     className="rounded-lg mx-auto mb-3 shadow-lg"
+                    priority
                   />
                 ) : (
                   <div className="bg-gray-700 h-32 w-24 rounded-lg mx-auto mb-3 flex items-center justify-center text-gray-400">
