@@ -116,13 +116,12 @@ export default function UserDashboard() {
   };
 
   if (loading) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50" style={{ backgroundImage: "url('/25.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="text-gray-900 text-xl">Loading...</div>
-    </div>
-  );
-}
-
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" style={{ backgroundImage: "url('/25.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="text-gray-900 text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   if (!userProfile) {
     return (
@@ -138,18 +137,18 @@ export default function UserDashboard() {
     <main className="p-8 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen max-w-screen-xl mx-auto rounded-lg shadow-xl">
       <h1 className="text-4xl font-extrabold mb-8">User Dashboard</h1>
 
-      <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Profile</h2>
-        <div className="flex items-center space-x-4">
+      <section className="mb-12 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-md">
+        <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Profile</h2>
+        <div className="flex items-center space-x-6">
           <label htmlFor="avatarUpload" className="cursor-pointer">
             {userProfile.avatar_url ? (
               <img
                 src={userProfile.avatar_url}
                 alt={userProfile.full_name || "User"}
-                className="w-20 h-20 rounded-full object-cover"
+                className="w-24 h-24 rounded-full object-cover border-4 border-indigo-600 shadow-lg"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-xl font-bold">
+              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-3xl font-bold border-4 border-indigo-600 shadow-lg">
                 {(userProfile.full_name || "U").charAt(0)}
               </div>
             )}
@@ -193,24 +192,24 @@ export default function UserDashboard() {
             }}
           />
           <div>
-            <p className="text-lg font-semibold">{userProfile.full_name || "User"}</p>
+            <p className="text-xl font-semibold">{userProfile.full_name || "User"}</p>
             <p className="text-sm text-gray-400">{userProfile.email}</p>
           </div>
         </div>
       </section>
 
-      <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Watchlist</h2>
+      <section className="mb-12 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-md">
+        <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Watchlist</h2>
         {watchlist.length === 0 ? (
           <p className="text-gray-400">Your watchlist is empty.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {watchlist.map(item => (
-              <li key={item.id} className="flex justify-between items-center bg-gray-800 p-3 rounded">
-                <span>{item.title} ({item.type})</span>
+              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-3 shadow-sm">
+                <span className="font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
                 <button
                   onClick={() => removeFromWatchlist(item.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 hover:text-red-700 font-semibold"
                 >
                   Remove
                 </button>
@@ -219,19 +218,19 @@ export default function UserDashboard() {
           </ul>
         )}
       </section>
-
-      <section className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Favorites</h2>
+      
+      <section className="mb-12 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-md">
+        <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Favorites</h2>
         {favorites.length === 0 ? (
           <p className="text-gray-400">You have no favorite items.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {favorites.map(item => (
-              <li key={item.id} className="flex justify-between items-center bg-gray-800 p-3 rounded">
-                <span>{item.title} ({item.type})</span>
+              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-3 shadow-sm">
+                <span className="font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
                 <button
                   onClick={() => removeFromFavorites(item.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 hover:text-red-700 font-semibold"
                 >
                   Remove
                 </button>

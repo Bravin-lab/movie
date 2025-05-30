@@ -1,2 +1,2 @@
--- Drop the custom users table safely if it exists
-drop table if exists public.users cascade;
+-- Drop the drop table if exists public.users cascade;custom users table safely if it exists
+
