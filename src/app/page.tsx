@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   getTrendingMovies,
   getPopularMovies,
@@ -14,6 +15,7 @@ interface Movie {
   title: string;
   poster_path: string | null;
   release_date: string;
+  vote_average?: number;
 }
 
 export default function HomePage() {
@@ -137,27 +139,30 @@ export default function HomePage() {
                   title={movie.title}
                   onClick={() => handleMovieClick(movie.id)}
                 >
-              {movie.poster_path ? (
-                <img
-                  src={posterBaseUrl + movie.poster_path}
-                  alt={movie.title}
-                  className="rounded-t-lg shadow-lg"
-                />
-              ) : (
-                <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
-                  No Image
-                </div>
-              )}
-              <div className="p-3 relative">
-                <div className="absolute top-2 right-2 w-10 h-10 rounded-full border-4 border-green-500 flex items-center justify-center text-white font-bold text-sm shadow-lg bg-gray-900">
-                  {/* Assuming movie.vote_average is available here */}
-                  {typeof movie.vote_average === "number" ? movie.vote_average.toFixed(1) : "N/A"}
-                </div>
-                <p className="text-lg font-semibold truncate">{movie.title}</p>
-                <p className="text-sm text-indigo-400">
-                  {movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}
-                </p>
-              </div>
+                  {movie.poster_path ? (
+                    <Image
+                      src={posterBaseUrl + movie.poster_path}
+                      alt={movie.title}
+                      width={180}
+                      height={270}
+                      className="rounded-t-lg shadow-lg"
+                      priority
+                    />
+                  ) : (
+                    <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
+                      No Image
+                    </div>
+                  )}
+                  <div className="p-3 relative">
+                    <div className="absolute top-2 right-2 w-10 h-10 rounded-full border-4 border-green-500 flex items-center justify-center text-white font-bold text-sm shadow-lg bg-gray-900">
+                      {/* Assuming movie.vote_average is available here */}
+                      {typeof movie.vote_average === "number" ? movie.vote_average.toFixed(1) : "N/A"}
+                    </div>
+                    <p className="text-lg font-semibold truncate">{movie.title}</p>
+                    <p className="text-sm text-indigo-400">
+                      {movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -178,10 +183,13 @@ export default function HomePage() {
                   onClick={() => handleMovieClick(movie.id)}
                 >
                   {movie.poster_path ? (
-                    <img
+                    <Image
                       src={posterBaseUrl + movie.poster_path}
                       alt={movie.title}
+                      width={180}
+                      height={270}
                       className="rounded-t-lg shadow-lg"
+                      priority
                     />
                   ) : (
                     <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
@@ -212,10 +220,13 @@ export default function HomePage() {
                   onClick={() => handleMovieClick(movie.id)}
                 >
                   {movie.poster_path ? (
-                    <img
+                    <Image
                       src={posterBaseUrl + movie.poster_path}
                       alt={movie.title}
+                      width={180}
+                      height={270}
                       className="rounded-t-lg shadow-lg"
+                      priority
                     />
                   ) : (
                     <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
@@ -246,10 +257,13 @@ export default function HomePage() {
                   onClick={() => handleMovieClick(movie.id)}
                 >
                   {movie.poster_path ? (
-                    <img
+                    <Image
                       src={posterBaseUrl + movie.poster_path}
                       alt={movie.title}
+                      width={180}
+                      height={270}
                       className="rounded-t-lg shadow-lg"
+                      priority
                     />
                   ) : (
                     <div className="bg-gray-700 h-48 rounded-t-lg flex items-center justify-center text-gray-400">
