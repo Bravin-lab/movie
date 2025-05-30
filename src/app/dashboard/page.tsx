@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 
 interface UserProfile {
@@ -142,10 +143,12 @@ export default function UserDashboard() {
         <div className="flex items-center space-x-6">
           <label htmlFor="avatarUpload" className="cursor-pointer">
             {userProfile.avatar_url ? (
-              <img
+              <Image
                 src={userProfile.avatar_url}
                 alt={userProfile.full_name || "User"}
-                className="w-24 h-24 rounded-full object-cover border-4 border-indigo-600 shadow-lg"
+                width={96}
+                height={96}
+                className="rounded-full object-cover border-4 border-indigo-600 shadow-lg"
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-3xl font-bold border-4 border-indigo-600 shadow-lg">
