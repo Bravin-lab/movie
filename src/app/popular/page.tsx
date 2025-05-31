@@ -21,6 +21,7 @@ export default function PopularPage() {
     async function fetchPopular() {
       try {
         const data = await tmdb.getPopularMovies();
+        console.log("Fetched popular movies data:", data);
         setPopular(data.results);
       } catch (error) {
         console.error("Failed to fetch popular movies", error);
