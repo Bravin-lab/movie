@@ -59,9 +59,17 @@ export interface CastMember {
   profile_path: string | null;
 }
 
+export interface CrewMember {
+  id: number;
+  name: string;
+  job: string;
+  department: string;
+  profile_path: string | null;
+}
+
 export interface Credits {
   cast: CastMember[];
-  crew?: any[]; // can be further typed if needed
+  crew?: CrewMember[]; // typed crew members
 }
 
 export interface Episode {
@@ -102,8 +110,23 @@ export async function getMovieDetails(movieId: number): Promise<Movie & { credit
   return fetchFromTMDB<Movie & { credits: Credits }>('movie/' + movieId, { append_to_response: 'credits' });
 }
 
-export async function getMovieReviews(movieId: number): Promise<any> {
-  return fetchFromTMDB<any>(`movie/${movieId}/reviews`);
+export interface MovieReview {
+  id: string;
+  author: string;
+  content: string;
+  url: string;
+}
+
+export interface MovieReviewsResponse {
+  id: number;
+  page: number;
+  results: MovieReview[];
+  total_pages: number;
+  total_results: number;
+}
+
+export async function getMovieReviews(movieId: number): Promise<MovieReviewsResponse> {
+  return fetchFromTMDB<MovieReviewsResponse>(`movie/${movieId}/reviews`);
 }
 
 export async function searchTVShows(query: string, page: number = 1): Promise<TVShowListResponse> {
