@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { getUpcomingMovies } from "@/lib/tmdb";
 
 interface Movie {
@@ -54,10 +55,13 @@ export default function UpcomingPage() {
             onClick={() => handleMovieClick(movie.id)}
           >
             {movie.poster_path ? (
-              <img
+              <Image
                 src={posterBaseUrl + movie.poster_path}
                 alt={movie.title}
+                width={300}
+                height={450}
                 className="rounded-t-lg shadow-lg"
+                priority
               />
             ) : (
               <div className="bg-gray-700 h-64 rounded-t-lg flex items-center justify-center text-gray-400">

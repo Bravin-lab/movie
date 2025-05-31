@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  getTrendingMovies,
-  getPopularMovies,
-  getUpcomingMovies,
-  searchMovies,
-} from "@/lib/tmdb";
+import * as tmdb from "@/lib/tmdb";
 
 interface Movie {
   id: number;
@@ -32,9 +27,9 @@ export default function HomePage() {
     if (!isSearching) {
       async function fetchMovies() {
         try {
-          const trendingData = await getTrendingMovies();
-          const popularData = await getPopularMovies();
-          const upcomingData = await getUpcomingMovies();
+          const trendingData = await tmdb.getTrendingMovies();
+          const popularData = await tmdb.getPopularMovies();
+          const upcomingData = await tmdb.getUpcomingMovies();
 
           setTrending(trendingData.results);
           setPopular(popularData.results);
@@ -69,7 +64,7 @@ export default function HomePage() {
     setLoading(true);
     setIsSearching(true);
     try {
-      const data = await searchMovies(searchQuery.trim());
+      const data = await tmdb.searchMovies(searchQuery.trim());
       setSearchResults(data.results);
     } catch (error) {
       console.error("Search failed", error);

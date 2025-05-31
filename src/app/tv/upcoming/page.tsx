@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { getUpcomingTVShows } from "@/lib/tmdb";
 
 interface TVShow {
@@ -43,10 +44,13 @@ export default function UpcomingTVShowsPage() {
           <Link key={show.id} href={`/tv/${show.id}`}>
             <a className="block rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition">
               {show.poster_path ? (
-                <img
+                <Image
                   src={posterBaseUrl + show.poster_path}
                   alt={show.name}
+                  width={200}
+                  height={300}
                   className="w-full h-auto"
+                  priority
                 />
               ) : (
                 <div className="bg-gray-700 h-48 flex items-center justify-center text-gray-400">

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { getPopularTVShows } from "@/lib/tmdb";
+import Image from "next/image";
+import * as tmdb from "@/lib/tmdb";
 
 interface TVShow {
   id: number;
@@ -18,7 +19,7 @@ export default function PopularTVShowsPage() {
   useEffect(() => {
     async function fetchPopular() {
       try {
-        const data = await getPopularTVShows();
+        const data = await tmdb.getPopularTVShows();
         setTVShows(data.results);
       } catch (error) {
         console.error("Failed to fetch popular TV shows", error);
@@ -43,10 +44,13 @@ export default function PopularTVShowsPage() {
           <Link key={show.id} href={`/tv/${show.id}`}>
             <a className="block rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition">
               {show.poster_path ? (
-                <img
+                <Image
                   src={posterBaseUrl + show.poster_path}
                   alt={show.name}
+                  width={200}
+                  height={300}
                   className="w-full h-auto"
+                  priority
                 />
               ) : (
                 <div className="bg-gray-700 h-48 flex items-center justify-center text-gray-400">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getPopularMovies } from "@/lib/tmdb";
+import * as tmdb from "@/lib/tmdb";
 
 interface Movie {
   id: number;
@@ -19,7 +19,7 @@ export default function PopularPage() {
   useEffect(() => {
     async function fetchPopular() {
       try {
-        const data = await getPopularMovies();
+        const data = await tmdb.getPopularMovies();
         setPopular(data.results);
       } catch (error) {
         console.error("Failed to fetch popular movies", error);

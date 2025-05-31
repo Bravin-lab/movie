@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getTVShowDetails, getTVShowSeasonDetails } from "@/lib/tmdb";
+import { getTVShowDetails, getTVShowSeasonDetails, Episode } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
 import { FaPlay } from "react-icons/fa";
 import Image from "next/image";
@@ -15,7 +15,7 @@ interface TVShowDetails {
   vote_average: number;
   genres: { id: number; name: string }[];
   credits: {
-    cast: { id: number; name: string; character: string; profile_path: string | null }[];
+    cast: { id: number; name: string; character?: string; profile_path: string | null }[];
   };
   poster_path: string | null;
   seasons?: {
@@ -37,7 +37,8 @@ export default function TVShowDetailsPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [showStreamingPlayer, setShowStreamingPlayer] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
-  const [episodes, setEpisodes] = useState<any[]>([]);
+
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [streamingUrl, setStreamingUrl] = useState<string | null>(null);
   const router = useRouter();
@@ -49,13 +50,15 @@ export default function TVShowDetailsPage({ params }: Props) {
     async function fetchDetails() {
       try {
         const data = await getTVShowDetails(Number(unwrappedParams.id));
-        setTVShow({
+        // Cast data to TVShowDetails with fallback for genres and seasons
+        const tvShowDetails: TVShowDetails = {
           ...data,
           genres: (data as any).genres || [],
           seasons: (data as any).seasons || [],
-        } as TVShowDetails);
-        if ((data as any).seasons && (data as any).seasons.length > 0) {
-          setSelectedSeason((data as any).seasons[0].season_number);
+        };
+        setTVShow(tvShowDetails);
+        if (tvShowDetails.seasons && tvShowDetails.seasons.length > 0) {
+          setSelectedSeason(tvShowDetails.seasons[0].season_number);
         }
       } catch (error) {
         console.error("Failed to fetch TV show details", error);
