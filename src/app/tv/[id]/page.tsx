@@ -51,10 +51,11 @@ export default function TVShowDetailsPage({ params }: Props) {
       try {
         const data = await getTVShowDetails(Number(unwrappedParams.id));
         // Cast data to TVShowDetails with fallback for genres and seasons
+        // Cast data to TVShowDetails with proper typing
         const tvShowDetails: TVShowDetails = {
           ...data,
-          genres: (data as any).genres || [],
-          seasons: (data as any).seasons || [],
+          genres: (data as unknown as TVShowDetails).genres || [],
+          seasons: (data as unknown as TVShowDetails).seasons || [],
         };
         setTVShow(tvShowDetails);
         if (tvShowDetails.seasons && tvShowDetails.seasons.length > 0) {
