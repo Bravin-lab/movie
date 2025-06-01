@@ -6,6 +6,8 @@ import { getTVShowDetails, getTVShowSeasonDetails, Episode } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
 import { FaPlay } from "react-icons/fa";
 import Image from "next/image";
+import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
+import { useUser } from "@/lib/UserContext";
 
 interface TVShowDetails {
   id: number;
@@ -46,12 +48,12 @@ export default function TVShowDetailsPage({ params }: Props) {
   const [youtubeVideoId, setYoutubeVideoId] = React.useState<string | null>(null);
   const [showYouTubePlayer, setShowYouTubePlayer] = React.useState(false);
 
+  const { user, loading: userLoading } = useUser();
+
   useEffect(() => {
     async function fetchDetails() {
       try {
         const data = await getTVShowDetails(Number(unwrappedParams.id));
-        // Cast data to TVShowDetails with fallback for genres and seasons
-        // Cast data to TVShowDetails with proper typing
         const tvShowDetails: TVShowDetails = {
           ...data,
           genres: (data as unknown as TVShowDetails).genres || [],
@@ -341,6 +343,18 @@ export default function TVShowDetailsPage({ params }: Props) {
               )}
             </div>
           )}
+          <div className="flex gap-4 mb-8">
+            {!userLoading && user ? (
+              <WatchlistFavoriteButtons
+                itemId={tvShow.id}
+                itemType="tv"
+                userId={user.id}
+                title={tvShow.name}
+              />
+            ) : (
+              <p className="text-gray-400">Please log in to add to watchlist or favorites.</p>
+            )}
+          </div>
         </div>
       </div>
     </main>

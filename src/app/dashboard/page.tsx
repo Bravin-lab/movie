@@ -41,7 +41,7 @@ export default function UserDashboard() {
         // Fetch user profile from user_profiles table
         const { data: profileData, error: profileError } = await supabase
           .from("user_profiles")
-          .select("id, full_name, avatar_url")
+          .select("id, FullName, avatar_url")
           .eq("id", user.id)
           .single();
 
@@ -49,16 +49,16 @@ export default function UserDashboard() {
           console.error("Error fetching user profile:", profileError);
           setUserProfile({
             id: user.id,
-            full_name: user.user_metadata.full_name || null,
+            full_name: user.user_metadata.full_name || user.email || "User",
             email: user.email || null,
             avatar_url: user.user_metadata.avatar_url ?? null,
           });
         } else {
           setUserProfile({
-          id: profileData.id,
-          full_name: profileData.full_name,
-          email: user.email || null,
-          avatar_url: profileData.avatar_url ?? null,
+            id: profileData.id,
+            full_name: profileData.FullName && profileData.FullName.trim() !== "" ? profileData.FullName : "User",
+            email: user.email || null,
+            avatar_url: profileData.avatar_url ?? null,
           });
         }
 
@@ -136,9 +136,9 @@ export default function UserDashboard() {
 
   return (
     <main className="p-8 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen max-w-screen-xl mx-auto rounded-lg shadow-xl">
-      <h1 className="text-4xl font-extrabold mb-8">User Dashboard</h1>
+      <h1 className="text-4xl font-extrabold mb-8">{userProfile.full_name}</h1>
 
-      <section className="mb-12 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-md">
+      <section className="mb-12 bg-gray-800 bg-opacity-60 rounded-lg p-6 shadow-md backdrop-blur-sm">
         <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Profile</h2>
         <div className="flex items-center space-x-6">
           <label htmlFor="avatarUpload" className="cursor-pointer">
@@ -148,7 +148,7 @@ export default function UserDashboard() {
                 alt={userProfile.full_name || "User"}
                 width={96}
                 height={96}
-                className="rounded-full object-cover border-4 border-indigo-600 shadow-lg"
+                className="rounded-full object-cover border-4 border-indigo-600 shadow-lg transition-transform hover:scale-105"
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-3xl font-bold border-4 border-indigo-600 shadow-lg">
@@ -164,34 +164,39 @@ export default function UserDashboard() {
             onChange={async (e) => {
               if (!e.target.files || e.target.files.length === 0) return;
               const file = e.target.files[0];
-              const fileExt = file.name.split('.').pop();
-              const fileName = `${userProfile?.id}.${fileExt}`;
-              const filePath = `avatars/${fileName}`;
+              const userId = userProfile?.id;
+              if (!userId) return;
 
-              const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file, { upsert: true });
+              const formData = new FormData();
+              formData.append("file", file);
+              formData.append("userId", userId);
 
-              if (uploadError) {
-                console.error('Error uploading avatar:', uploadError.message);
-                return;
+              try {
+                const response = await fetch("/api/upload-avatar", {
+                  method: "POST",
+                  body: formData,
+                });
+
+                let data;
+                try {
+                  data = await response.clone().json();
+                } catch {
+                  const text = await response.text();
+                  console.error("Error uploading avatar: Response is not JSON:", text);
+                  return;
+                }
+
+                if (!response.ok) {
+                  console.error("Error uploading avatar:", data.error);
+                  return;
+                }
+
+                setUserProfile((prev) =>
+                  prev ? { ...prev, avatar_url: data.publicUrl } : prev
+                );
+              } catch (error) {
+                console.error("Error uploading avatar:", error);
               }
-
-              const { data: publicUrlData } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
-
-              const { error: updateError } = await supabase
-                .from('user_profiles')
-                .update({ avatar_url: publicUrlData.publicUrl })
-                .eq('id', userProfile?.id);
-
-              if (updateError) {
-                console.error('Error updating avatar URL:', updateError.message);
-                return;
-              }
-
-              setUserProfile((prev) => prev ? { ...prev, avatar_url: publicUrlData.publicUrl } : prev);
             }}
           />
           <div>
@@ -201,14 +206,14 @@ export default function UserDashboard() {
         </div>
       </section>
 
-      <section className="mb-12 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-md">
+      <section className="mb-12 bg-gray-800 bg-opacity-60 rounded-lg p-6 shadow-md backdrop-blur-sm">
         <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Watchlist</h2>
         {watchlist.length === 0 ? (
           <p className="text-gray-400">Your watchlist is empty.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {watchlist.map(item => (
-              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-3 shadow-sm">
+              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
                 <span className="font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
                 <button
                   onClick={() => removeFromWatchlist(item.id)}
@@ -222,14 +227,14 @@ export default function UserDashboard() {
         )}
       </section>
       
-      <section className="mb-12 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-md">
+      <section className="mb-12 bg-gray-800 bg-opacity-60 rounded-lg p-6 shadow-md backdrop-blur-sm">
         <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Favorites</h2>
         {favorites.length === 0 ? (
           <p className="text-gray-400">You have no favorite items.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {favorites.map(item => (
-              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-3 shadow-sm">
+              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
                 <span className="font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
                 <button
                   onClick={() => removeFromFavorites(item.id)}

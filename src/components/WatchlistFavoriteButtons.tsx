@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { FiBookmark, FiHeart } from "react-icons/fi";
 
 interface WatchlistFavoriteButtonsProps {
   itemId: number;
   itemType: "movie" | "tv";
   userId: string;
+  title: string;
 }
 
-const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ itemId, itemType, userId }) => {
+const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ itemId, itemType, userId, title }) => {
+  console.log("WatchlistFavoriteButtons title prop:", title);
   const [isInWatchlist, setIsInWatchlist] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -20,8 +23,8 @@ const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ ite
           .from("watchlist")
           .select("*")
           .eq("user_id", userId)
-          .eq("item_id", itemId)
-          .eq("item_type", itemType)
+          .eq("movie_id", itemId)
+          .eq("type", itemType)
           .single();
 
         if (watchlistError && watchlistError.code !== "PGRST116") {
@@ -34,8 +37,8 @@ const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ ite
           .from("favorites")
           .select("*")
           .eq("user_id", userId)
-          .eq("item_id", itemId)
-          .eq("item_type", itemType)
+          .eq("movie_id", itemId)
+          .eq("type", itemType)
           .single();
 
         if (favoriteError && favoriteError.code !== "PGRST116") {
@@ -55,24 +58,29 @@ const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ ite
   async function toggleWatchlist() {
     setLoading(true);
     try {
+      if (!title) {
+        console.error("Cannot insert watchlist item: title is null or empty");
+        setLoading(false);
+        return;
+      }
       if (isInWatchlist) {
         const { error } = await supabase
           .from("watchlist")
           .delete()
           .eq("user_id", userId)
-          .eq("item_id", itemId)
-          .eq("item_type", itemType);
+          .eq("movie_id", itemId)
+          .eq("type", itemType);
         if (error) throw error;
         setIsInWatchlist(false);
       } else {
         const { error } = await supabase
           .from("watchlist")
-          .insert([{ user_id: userId, item_id: itemId, item_type: itemType }]);
+          .insert([{ user_id: userId, movie_id: itemId, type: itemType, title }]);
         if (error) throw error;
         setIsInWatchlist(true);
       }
     } catch (error) {
-      console.error("Error toggling watchlist:", error);
+      console.error("Error toggling watchlist:", JSON.stringify(error), { userId, itemId, itemType, title });
     } finally {
       setLoading(false);
     }
@@ -81,24 +89,29 @@ const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ ite
   async function toggleFavorite() {
     setLoading(true);
     try {
+      if (!title) {
+        console.error("Cannot insert favorite item: title is null or empty");
+        setLoading(false);
+        return;
+      }
       if (isFavorite) {
         const { error } = await supabase
           .from("favorites")
           .delete()
           .eq("user_id", userId)
-          .eq("item_id", itemId)
-          .eq("item_type", itemType);
+          .eq("movie_id", itemId)
+          .eq("type", itemType);
         if (error) throw error;
         setIsFavorite(false);
       } else {
         const { error } = await supabase
           .from("favorites")
-          .insert([{ user_id: userId, item_id: itemId, item_type: itemType }]);
+          .insert([{ user_id: userId, movie_id: itemId, type: itemType, title }]);
         if (error) throw error;
         setIsFavorite(true);
       }
     } catch (error) {
-      console.error("Error toggling favorite:", error);
+      console.error("Error toggling favorite:", JSON.stringify(error), { userId, itemId, itemType, title });
     } finally {
       setLoading(false);
     }
@@ -109,19 +122,23 @@ const WatchlistFavoriteButtons: React.FC<WatchlistFavoriteButtonsProps> = ({ ite
       <button
         onClick={toggleWatchlist}
         disabled={loading}
-        className={`px-4 py-2 rounded ${
+        aria-label={isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
+        className={`flex items-center gap-2 px-4 py-2 rounded ${
           isInWatchlist ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300"
         } hover:bg-blue-700 transition`}
       >
+        <FiBookmark className={isInWatchlist ? "text-white" : "text-gray-300"} size={20} />
         {isInWatchlist ? "Remove from Watchlist" : "Add to Watchlist"}
       </button>
       <button
         onClick={toggleFavorite}
         disabled={loading}
-        className={`px-4 py-2 rounded ${
+        aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+        className={`flex items-center gap-2 px-4 py-2 rounded ${
           isFavorite ? "bg-red-600 text-white" : "bg-gray-700 text-gray-300"
         } hover:bg-red-700 transition`}
       >
+        <FiHeart className={isFavorite ? "text-white" : "text-gray-300"} size={20} />
         {isFavorite ? "Remove from Favorites" : "Add to Favorites"}
       </button>
     </div>

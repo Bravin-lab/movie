@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { getMovieDetails } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
 import { FaPlay } from "react-icons/fa";
+import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
+import { useUser } from "@/lib/UserContext";
 
 interface MovieDetails {
   id: number;
@@ -38,6 +40,8 @@ export default function MovieDetailsPage({ params }: Props) {
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
   const [showStreamingPlayer, setShowStreamingPlayer] = useState(false);
   const router = useRouter();
+
+  const { user, loading: userLoading } = useUser();
 
   React.useEffect(() => {
     async function fetchDetails() {
@@ -97,14 +101,6 @@ export default function MovieDetailsPage({ params }: Props) {
 
   function toggleStreamingPlayer() {
     setShowStreamingPlayer((prev) => !prev);
-  }
-
-  async function addToWatchlist() {
-    alert("Watchlist functionality is currently unavailable.");
-  }
-
-  async function addToFavorites() {
-    alert("Favorites functionality is currently unavailable.");
   }
 
   return (
@@ -222,18 +218,16 @@ export default function MovieDetailsPage({ params }: Props) {
           </div>
 
           <div className="flex gap-4 mb-8">
-            <button
-              onClick={addToWatchlist}
-              className="px-6 py-3 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition font-semibold"
-            >
-              Add to Watchlist
-            </button>
-            <button
-              onClick={addToFavorites}
-              className="px-6 py-3 bg-yellow-400 rounded-lg hover:bg-yellow-500 transition font-semibold"
-            >
-              Add to Favorites
-            </button>
+              {!userLoading && user ? (
+              <WatchlistFavoriteButtons
+                itemId={movie.id}
+                itemType="movie"
+                userId={user.id}
+                title={movie.title}
+              />
+            ) : (
+              <p className="text-gray-400">Please log in to add to watchlist or favorites.</p>
+            )}
           </div>
 
           {trailer ? (
