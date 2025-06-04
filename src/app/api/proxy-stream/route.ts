@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function filterHLSManifest(manifestText: string): string {
-  // Basic example: remove lines containing ad markers or ad segments
-  // This should be customized based on actual ad tags used by vidsrc
+  // Enhanced filtering: remove lines containing common ad markers or ad segments
+  // Customize this list based on actual ad tags used by vidsrc or observed in manifests
+  const adIndicators = [
+    '#EXT-X-DATERANGE:CLASS="ad"',
+    '#EXT-X-DATERANGE:ID="ad"',
+    'ad',
+    'ads',
+    'advertisement',
+    'skip',
+    'preroll',
+    'postroll',
+    'midroll',
+    'commercial',
+    'promo',
+  ];
+
   const lines = manifestText.split('\n');
   const filteredLines = lines.filter(line => {
-    // Remove lines that contain ad markers or known ad segment patterns
-    if (
-      (line.includes('#EXT-X-DATERANGE:') && line.includes('CLASS="ad"')) ||
-      line.includes('ad') || // generic filter, may need refinement
-      line.includes('ads') ||
-      line.includes('advertisement')
-    ) {
-      return false;
+    for (const indicator of adIndicators) {
+      if (line.toLowerCase().includes(indicator.toLowerCase())) {
+        return false;
+      }
     }
     return true;
   });
@@ -53,7 +63,7 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch content' }, { status: 500 });
   }
 }
