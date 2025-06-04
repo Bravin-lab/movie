@@ -48,8 +48,8 @@ export default function MovieDetailsPage({ params }: Props) {
       try {
         const unwrappedParams = await params;
         const data = await getMovieDetails(Number(unwrappedParams.id));
-        // Add streaming URL using vidsrc.xyz with tmdb id
-        const streamingUrl = `https://vidsrc.xyz/embed/movie?tmdb=${data.id}`;
+        // Add streaming URL using proxy to vidsrc.xyz with tmdb id
+        const streamingUrl = `/api/proxy-stream?url=${encodeURIComponent(`https://vidsrc.xyz/embed/movie?tmdb=${data.id}`)}`;
         setMovie({ ...data, streamingUrl } as MovieDetails);
       } catch (error) {
         console.error("Failed to fetch movie details", error);

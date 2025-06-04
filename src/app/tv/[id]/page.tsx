@@ -111,10 +111,10 @@ export default function TVShowDetailsPage({ params }: Props) {
   }, [selectedSeason, tvShow]);
 
   useEffect(() => {
-    if (tvShow && selectedSeason !== null && selectedEpisode !== null) {
-      const url = `https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}`;
-      setStreamingUrl(url);
-    }
+      if (tvShow && selectedSeason !== null && selectedEpisode !== null) {
+        const url = `/api/proxy-stream?url=${encodeURIComponent(`https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}`)}`;
+        setStreamingUrl(url);
+      }
   }, [tvShow, selectedSeason, selectedEpisode]);
 
   if (loading) {
