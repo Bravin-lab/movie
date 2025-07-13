@@ -90,6 +90,23 @@ export interface SeasonDetails {
   episodes: Episode[];
 }
 
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+export interface GenreListResponse {
+  genres: Genre[];
+}
+
+export async function fetchGenres(): Promise<GenreListResponse> {
+  return fetchFromTMDB<GenreListResponse>('genre/movie/list');
+}
+
+export async function discoverMoviesByGenre(genreId: number, page: number = 1): Promise<MovieListResponse> {
+  return fetchFromTMDB<MovieListResponse>('discover/movie', { with_genres: genreId.toString(), page: page.toString() });
+}
+
 export async function searchMovies(query: string, page: number = 1): Promise<MovieListResponse> {
   return fetchFromTMDB<MovieListResponse>('search/movie', { query, page: page.toString() });
 }

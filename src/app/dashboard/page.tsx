@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
+import * as tmdb from "@/lib/tmdb";
 
 interface UserProfile {
   id: string;
@@ -13,14 +14,18 @@ interface UserProfile {
 
 interface WatchlistItem {
   id: number;
+  movie_id: number;
   title: string;
   type: "movie" | "tv";
+  poster_path?: string | null;
 }
 
 interface FavoriteItem {
   id: number;
+  movie_id: number;
   title: string;
   type: "movie" | "tv";
+  poster_path?: string | null;
 }
 
 export default function UserDashboard() {
@@ -68,7 +73,6 @@ export default function UserDashboard() {
           .select("*")
           .eq("user_id", user.id);
         if (watchlistError) throw watchlistError;
-        setWatchlist(watchlistData || []);
 
         // Fetch favorites from Supabase
         const { data: favoritesData, error: favoritesError } = await supabase
@@ -76,7 +80,47 @@ export default function UserDashboard() {
           .select("*")
           .eq("user_id", user.id);
         if (favoritesError) throw favoritesError;
-        setFavorites(favoritesData || []);
+
+        // Fetch poster paths for watchlist items
+        const watchlistWithPosters = await Promise.all(
+          (watchlistData || []).map(async (item: WatchlistItem) => {
+            try {
+              if (item.type === "movie") {
+                const details = await tmdb.getMovieDetails(item.movie_id);
+                return { ...item, poster_path: details.poster_path };
+              } else if (item.type === "tv") {
+                const details = await tmdb.getTVShowDetails(item.movie_id);
+                return { ...item, poster_path: details.poster_path };
+              }
+              return item;
+            } catch (error) {
+              console.error("Error fetching watchlist item details:", error);
+              return item;
+            }
+          })
+        );
+
+        // Fetch poster paths for favorite items
+        const favoritesWithPosters = await Promise.all(
+          (favoritesData || []).map(async (item: FavoriteItem) => {
+            try {
+              if (item.type === "movie") {
+                const details = await tmdb.getMovieDetails(item.movie_id);
+                return { ...item, poster_path: details.poster_path };
+              } else if (item.type === "tv") {
+                const details = await tmdb.getTVShowDetails(item.movie_id);
+                return { ...item, poster_path: details.poster_path };
+              }
+              return item;
+            } catch (error) {
+              console.error("Error fetching favorite item details:", error);
+              return item;
+            }
+          })
+        );
+
+        setWatchlist(watchlistWithPosters);
+        setFavorites(favoritesWithPosters);
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -213,11 +257,24 @@ export default function UserDashboard() {
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {watchlist.map(item => (
-              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
-                <span className="font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
+              <li key={item.id} className="flex items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
+                {item.poster_path ? (
+                  <Image
+                    src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                    alt={item.title}
+                    width={40}
+                    height={60}
+                    className="rounded"
+                  />
+                ) : (
+                  <div className="w-10 h-14 bg-gray-600 rounded flex items-center justify-center text-gray-400 text-xs font-semibold">
+                    No Image
+                  </div>
+                )}
+                <span className="ml-4 font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
                 <button
                   onClick={() => removeFromWatchlist(item.id)}
-                  className="text-red-500 hover:text-red-700 font-semibold"
+                  className="text-red-500 hover:text-red-700 font-semibold ml-auto"
                 >
                   Remove
                 </button>
@@ -234,11 +291,24 @@ export default function UserDashboard() {
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {favorites.map(item => (
-              <li key={item.id} className="flex justify-between items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
-                <span className="font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
+              <li key={item.id} className="flex items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
+                {item.poster_path ? (
+                  <Image
+                    src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                    alt={item.title}
+                    width={40}
+                    height={60}
+                    className="rounded"
+                  />
+                ) : (
+                  <div className="w-10 h-14 bg-gray-600 rounded flex items-center justify-center text-gray-400 text-xs font-semibold">
+                    No Image
+                  </div>
+                )}
+                <span className="ml-4 font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
                 <button
                   onClick={() => removeFromFavorites(item.id)}
-                  className="text-red-500 hover:text-red-700 font-semibold"
+                  className="text-red-500 hover:text-red-700 font-semibold ml-auto"
                 >
                   Remove
                 </button>
@@ -248,7 +318,54 @@ export default function UserDashboard() {
         )}
       </section>
 
-      {/* Additional sections like Recently Watched, Recommendations, Account Settings, etc. can be added here */}
+      <section className="mb-12 bg-gray-800 bg-opacity-60 rounded-lg p-6 shadow-md backdrop-blur-sm">
+        <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Suggestions</h2>
+        {/* Placeholder suggestions - can be replaced with real logic */}
+        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {watchlist.length === 0 && favorites.length === 0 ? (
+            <p className="text-gray-400">No suggestions available. Add items to your watchlist or favorites to get suggestions.</p>
+          ) : (
+            <>
+              {watchlist.slice(0, 3).map(item => (
+                <li key={`suggest-watchlist-${item.id}`} className="flex items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
+                  {item.poster_path ? (
+                    <Image
+                      src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                      alt={item.title}
+                      width={40}
+                      height={60}
+                      className="rounded"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 bg-gray-600 rounded flex items-center justify-center text-gray-400 text-xs font-semibold">
+                      No Image
+                    </div>
+                  )}
+                  <span className="ml-4 font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
+                </li>
+              ))}
+              {favorites.slice(0, 3).map(item => (
+                <li key={`suggest-favorites-${item.id}`} className="flex items-center bg-gray-700 hover:bg-gray-600 transition rounded p-4 shadow-sm">
+                  {item.poster_path ? (
+                    <Image
+                      src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                      alt={item.title}
+                      width={40}
+                      height={60}
+                      className="rounded"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 bg-gray-600 rounded flex items-center justify-center text-gray-400 text-xs font-semibold">
+                      No Image
+                    </div>
+                  )}
+                  <span className="ml-4 font-medium">{item.title} <span className="text-sm text-gray-400">({item.type})</span></span>
+                </li>
+              ))}
+            </>
+          )}
+        </ul>
+      </section>
     </main>
   );
 }

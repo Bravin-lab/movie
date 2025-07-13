@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import * as tmdb from "@/lib/tmdb";
-import GenreDropdown from "@/components/GenreDropdown";
 
 interface Movie {
   id: number;
@@ -14,52 +13,27 @@ interface Movie {
   vote_average?: number;
 }
 
-interface Genre {
-  id: number;
-  name: string;
-}
-
-import { useUser } from "@/lib/UserContext";
-
 export default function HomePage() {
-  const { user, loading: userLoading } = useUser();
   const [trending, setTrending] = useState<Movie[]>([]);
   const [popular, setPopular] = useState<Movie[]>([]);
   const [upcoming, setUpcoming] = useState<Movie[]>([]);
   const [searchResults, setSearchResults] = useState<Movie[]>([]);
-  const [genres] = useState<Genre[]>([]);
-  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/login");
-      return;
-    }
     if (!isSearching) {
       async function fetchMovies() {
         try {
-          if (selectedGenre !== null) {
-            const genreId = selectedGenre;
-            const trendingData = await tmdb.discoverMoviesByGenre(genreId);
-            const popularData = await tmdb.discoverMoviesByGenre(genreId);
-            const upcomingData = await tmdb.getUpcomingMovies();
+          const trendingData = await tmdb.getTrendingMovies();
+          const popularData = await tmdb.getPopularMovies();
+          const upcomingData = await tmdb.getUpcomingMovies();
 
-            setTrending(trendingData.results);
-            setPopular(popularData.results);
-            setUpcoming(upcomingData.results);
-          } else {
-            const trendingData = await tmdb.getTrendingMovies();
-            const popularData = await tmdb.getPopularMovies();
-            const upcomingData = await tmdb.getUpcomingMovies();
-
-            setTrending(trendingData.results);
-            setPopular(popularData.results);
-            setUpcoming(upcomingData.results);
-          }
+          setTrending(trendingData.results);
+          setPopular(popularData.results);
+          setUpcoming(upcomingData.results);
         } catch (error) {
           console.error("Failed to fetch movies", error);
         } finally {
@@ -68,8 +42,7 @@ export default function HomePage() {
       }
       fetchMovies();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSearching, JSON.stringify(selectedGenre), userLoading, user]);
+  }, [isSearching]);
 
   if (loading) {
     return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading movies...</div>;
@@ -107,9 +80,7 @@ export default function HomePage() {
     setSearchResults([]);
   }
 
-  // Removed unused handleGenreChange function to fix lint error
-
-  const moviesToDisplay = isSearching ? searchResults : (selectedGenre !== null ? trending : []);
+  const moviesToDisplay = isSearching ? searchResults : [];
 
   return (
     <main className="p-8 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen">
@@ -145,16 +116,6 @@ export default function HomePage() {
             </button>
           )}
         </form>
-        <div className="mt-4 max-w-md mx-auto">
-          <label htmlFor="genre-select" className="block mb-2 text-sm font-medium text-white">
-            Filter by Genre
-          </label>
-          <GenreDropdown
-            genres={genres}
-            selectedGenre={selectedGenre}
-            onChange={(genreId) => setSelectedGenre(genreId)}
-          />
-        </div>
       </header>
 
       {isSearching ? (
@@ -189,7 +150,6 @@ export default function HomePage() {
                   )}
                   <div className="p-3 relative">
                     <div className="absolute top-2 right-2 w-10 h-10 rounded-full border-4 border-green-500 flex items-center justify-center text-white font-bold text-sm shadow-lg bg-gray-900">
-                      {/* Assuming movie.vote_average is available here */}
                       {typeof movie.vote_average === "number" ? movie.vote_average.toFixed(1) : "N/A"}
                     </div>
                     <p className="text-lg font-semibold truncate">{movie.title}</p>
@@ -205,7 +165,7 @@ export default function HomePage() {
       ) : (
         <>
           <section className="mb-12">
-            <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+            <h2 className="text-4xl font-extrabold mb-8 border-indigo-600 inline-block pb-2">
               Trending Movies
             </h2>
             <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
@@ -242,7 +202,7 @@ export default function HomePage() {
           </section>
 
           <section className="mb-12">
-            <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+            <h2 className="text-4xl font-extrabold mb-8 border-indigo-600 inline-block pb-2">
               Popular Movies
             </h2>
             <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
@@ -279,7 +239,7 @@ export default function HomePage() {
           </section>
 
           <section>
-            <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+            <h2 className="text-4xl font-extrabold mb-8 border-indigo-600 inline-block pb-2">
               Upcoming Movies
             </h2>
             <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">

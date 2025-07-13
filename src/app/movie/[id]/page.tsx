@@ -44,6 +44,10 @@ export default function MovieDetailsPage({ params }: Props) {
   const { user, loading: userLoading } = useUser();
 
   React.useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/login");
+      return;
+    }
     async function fetchDetails() {
       try {
         const unwrappedParams = await params;
@@ -58,7 +62,9 @@ export default function MovieDetailsPage({ params }: Props) {
       }
     }
     fetchDetails();
-  }, [params]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, userLoading, user]);
+
 
   React.useEffect(() => {
     async function fetchYouTubeTrailer() {

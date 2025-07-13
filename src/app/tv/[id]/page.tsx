@@ -51,6 +51,10 @@ export default function TVShowDetailsPage({ params }: Props) {
   const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/login");
+      return;
+    }
     async function fetchDetails() {
       try {
         const data = await getTVShowDetails(Number(unwrappedParams.id));
@@ -70,7 +74,8 @@ export default function TVShowDetailsPage({ params }: Props) {
       }
     }
     fetchDetails();
-  }, [unwrappedParams.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unwrappedParams.id, userLoading, user]);
   
   useEffect(() => {
     async function fetchYouTubeTrailer() {

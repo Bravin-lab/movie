@@ -80,6 +80,13 @@ export default function Navbar() {
             >
               Dashboard
             </Link>
+            <Link
+              href="/contact"
+              className="px-3 py-1 rounded hover:bg-indigo-600 transition"
+              onClick={() => setIsOpen(false)}
+            >
+              Contact
+            </Link>
           </div>
         </div>
       )}

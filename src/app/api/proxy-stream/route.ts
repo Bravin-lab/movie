@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 function filterHLSManifest(manifestText: string): string {
   // Enhanced filtering: remove lines containing common ad markers or ad segments
-  // Customize this list based on actual ad tags used by vidsrc or observed in manifests
+  // Expanded list to cover more ad-related tags and patterns
   const adIndicators = [
     '#EXT-X-DATERANGE:CLASS="ad"',
     '#EXT-X-DATERANGE:ID="ad"',
+    '#EXT-X-DATERANGE:CLASS="com.apple.ads"',
+    '#EXT-X-DATERANGE:ID="preroll"',
+    '#EXT-X-DATERANGE:ID="midroll"',
+    '#EXT-X-DATERANGE:ID="postroll"',
     'ad',
     'ads',
     'advertisement',
@@ -15,6 +19,25 @@ function filterHLSManifest(manifestText: string): string {
     'midroll',
     'commercial',
     'promo',
+    'redirect',
+    'click',
+    'pause',
+    'overlay',
+    'banner',
+    'popup',
+    'interstitial',
+    'tracking',
+    'analytics',
+    'impression',
+    'adsegment',
+    'adbreak',
+    'ad-marker',
+    'ad_tag',
+    'ad_url',
+    'touch',
+    'interaction',
+    'useraction',
+    'user_interaction',
   ];
 
   const lines = manifestText.split('\n');
