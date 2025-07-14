@@ -41,7 +41,7 @@ export default function SupportFeedback() {
   };
 
   return (
-    <section className="mb-12 bg-gray-800 bg-opacity-60 rounded-lg p-6 shadow-md backdrop-blur-sm max-w-md">
+    <section className="mb-12 bg-transparent-800 bg-opacity-60 rounded-lg p-6 shadow-md backdrop-blur-sm max-w-md">
       <h2 className="text-2xl font-semibold mb-6 border-b border-gray-700 pb-2">Support & Feedback</h2>
       {status === "success" && <p className="text-green-400 mb-4">Thank you for your feedback!</p>}
       {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -53,7 +53,7 @@ export default function SupportFeedback() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600"
+            className="w-full p-2 rounded bg-transparent-700 text-white border border-gray-600"
             placeholder="Your email address"
           />
         </div>
@@ -65,7 +65,7 @@ export default function SupportFeedback() {
             onChange={(e) => setMessage(e.target.value)}
             required
             rows={4}
-            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 resize-none"
+            className="w-full p-2 rounded bg-grey-700 text-white border border-gray-600 resize-none"
             placeholder="Describe your issue or suggestion"
           />
         </div>

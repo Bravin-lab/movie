@@ -85,7 +85,7 @@ export default function Navbar() {
               className="px-3 py-1 rounded hover:bg-indigo-600 transition"
               onClick={() => setIsOpen(false)}
             >
-              Contact
+              Contact developer
             </Link>
           </div>
         </div>
