@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function LoginPage() {
@@ -47,14 +48,14 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-6 text-gray-900">
           <p className="mt-4 text-center text-sm text-gray-700">
           You don&apos;t have an account?{' '}
-          <a href="/signup" className="text-indigo-600 hover:underline">
+          <Link href="/signup" className="text-indigo-600 hover:underline">
             Sign up
-          </a>
+          </Link>
         </p>
         <p className="mt-2 text-center text-sm text-gray-700">
-          <a href="/reset-password" className="text-indigo-600 hover:underline">
+          <Link href="/reset-password" className="text-indigo-600 hover:underline">
             Forgot Password?
-          </a>
+          </Link>
         </p>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">

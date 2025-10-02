@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function SignupPage() {
@@ -72,9 +73,9 @@ export default function SignupPage() {
         <form onSubmit={handleSignup} className="space-y-6 text-gray-900">
           <p className="mt-4 text-center text-sm text-gray-700">
             Have an account?{' '}
-            <a href="/login" className="text-indigo-600 hover:underline">
+            <Link href="/login" className="text-indigo-600 hover:underline">
               Sign in
-            </a>
+            </Link>
           </p>
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
