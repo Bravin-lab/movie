@@ -102,6 +102,12 @@ export default function LandingPage() {
             fill
             className="object-cover transition-opacity duration-1000"
             priority
+            onError={(e) => {
+              console.error('Image failed to load:', backgroundImages[currentImageIndex].backdrop_path, e);
+              // Try next image on error
+              setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
+            }}
+            onLoad={() => console.log('Image loaded successfully:', backgroundImages[currentImageIndex].title)}
           />
           <div className="absolute inset-0 bg-black/60"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/80"></div>

@@ -1,11 +1,6 @@
-# Dashboard UI Modernization Plan
-
-## Tasks
-- [x] Update background with animated gradients and futuristic effects
-- [x] Redesign profile section with glassmorphism, glowing avatar, and user stats
-- [x] Redesign watchlist section with card grid, hover animations, and styled remove buttons
-- [x] Redesign favorites section similarly to watchlist
-- [x] Redesign suggestions section with improved layout
-- [x] Add Framer Motion animations for smooth transitions
-- [x] Update typography and color scheme for futuristic feel
-- [x] Test responsiveness and performance
+- [ ] Add Puppeteer logic to extract video sources from HTML pages (e.g., for embed URLs)
+- [ ] Add HTML injection: If response is HTML, inject ad-blocking scripts
+- [ ] Enhance HLS filtering with filler logic (replace ad segments with dummy content)
+- [ ] Retain domain validation and enhanced headers
+- [ ] Replace src/app/api/proxy-stream/route.ts with the integrated and corrected code
+- [ ] Test the proxy functionality for HLS filtering, Puppeteer extraction, and HTML injection
