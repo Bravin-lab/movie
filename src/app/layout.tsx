@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { UserProvider } from "@/lib/UserContext";
+import type { Metadata } from 'next';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +14,14 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const metadata: Metadata = {
+  title: 'Movie Hub',
+  description: 'Your ultimate movie streaming platform',
+  icons: {
+    icon: '/popcon.jpg',
+  },
+};
 
 export default function RootLayout({
   children,

@@ -4,9 +4,11 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTVShowDetails, getTVShowSeasonDetails, Episode } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
+
 import { FaPlay } from "react-icons/fa";
 import Image from "next/image";
 import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
+import ProxyVideoPlayer from "@/components/ProxyVideoPlayer";
 import { useUser } from "@/lib/UserContext";
 
 interface TVShowDetails {
@@ -49,13 +51,9 @@ export default function TVShowDetailsPage({ params }: Props) {
   const [youtubeVideoId, setYoutubeVideoId] = React.useState<string | null>(null);
   const [showYouTubePlayer, setShowYouTubePlayer] = React.useState(false);
 
-  const { user, loading: userLoading } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/login");
-      return;
-    }
     async function fetchDetails() {
       try {
         const data = await getTVShowDetails(Number(unwrappedParams.id));
@@ -75,8 +73,7 @@ export default function TVShowDetailsPage({ params }: Props) {
       }
     }
     fetchDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unwrappedParams.id, userLoading, user]);
+  }, [unwrappedParams.id]);
   
   useEffect(() => {
     async function fetchYouTubeTrailer() {
@@ -118,8 +115,16 @@ export default function TVShowDetailsPage({ params }: Props) {
 
   useEffect(() => {
       if (tvShow && selectedSeason !== null && selectedEpisode !== null) {
-        const url = `https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}&ds_lang=de`;
-        setStreamingUrl(url);
+        // Try to get streaming URL from Jellyfin first
+        async function getStreamingUrl() {
+          if (!tvShow) return;
+
+          // Get streaming URL from vidsrc
+          const targetUrl = `https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}&ds_lang=de`;
+          const url = `/api/proxy-stream?url=${encodeURIComponent(targetUrl)}`;
+          setStreamingUrl(url);
+        }
+        getStreamingUrl();
       }
   }, [tvShow, selectedSeason, selectedEpisode]);
 
@@ -299,11 +304,10 @@ export default function TVShowDetailsPage({ params }: Props) {
  
             <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
               <div className="flex flex-wrap gap-4">
-                {!userLoading && user ? (
+                {user ? (
                   <WatchlistFavoriteButtons
                     itemId={tvShow.id}
                     itemType="tv"
-                    userId={user.id}
                     title={tvShow.name}
                   />
                 ) : (
@@ -373,11 +377,10 @@ export default function TVShowDetailsPage({ params }: Props) {
                 </button>
                 {showStreamingPlayer && (
                   <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-                    <iframe
+                    <ProxyVideoPlayer
                       src={streamingUrl}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                      className="w-full h-full"
                       title={`Episode ${selectedEpisode} Player`}
+                      className="w-full h-full"
                     />
                   </div>
                 )}

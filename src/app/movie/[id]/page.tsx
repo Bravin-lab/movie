@@ -5,8 +5,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getMovieDetails } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
+
 import { FaPlay } from "react-icons/fa";
 import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
+import ProxyVideoPlayer from "@/components/ProxyVideoPlayer";
 import { useUser } from "@/lib/UserContext";
 
 interface MovieDetails {
@@ -25,7 +27,7 @@ interface MovieDetails {
   poster_path: string | null;
   backdrop_path: string | null;
   streamingUrl?: string;
-}
+};
 
 interface Props {
   params: Promise<{
@@ -41,19 +43,18 @@ export default function MovieDetailsPage({ params }: Props) {
   const [showStreamingPlayer, setShowStreamingPlayer] = useState(false);
   const router = useRouter();
 
-  const { user, loading: userLoading } = useUser();
+  const { user } = useUser();
 
   React.useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/login");
-      return;
-    }
     async function fetchDetails() {
       try {
         const unwrappedParams = await params;
         const data = await getMovieDetails(Number(unwrappedParams.id));
-        // Add streaming URL directly to vidsrc.xyz with tmdb id (proxied by service worker)
-        const streamingUrl = `https://vidsrc.xyz/embed/movie?tmdb=${data.id}`;
+
+        // Get streaming URL from vidsrc
+        const targetUrl = `https://vidsrc.xyz/embed/movie?tmdb=${data.id}`;
+        const streamingUrl = `/api/proxy-stream?url=${encodeURIComponent(targetUrl)}`;
+
         setMovie({ ...data, streamingUrl } as MovieDetails);
       } catch (error) {
         console.error("Failed to fetch movie details", error);
@@ -62,8 +63,7 @@ export default function MovieDetailsPage({ params }: Props) {
       }
     }
     fetchDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, userLoading, user]);
+  }, [params]);
 
 
   React.useEffect(() => {
@@ -236,11 +236,10 @@ export default function MovieDetailsPage({ params }: Props) {
           {/* Actions Section */}
           <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
             <div className="flex flex-wrap gap-4">
-              {!userLoading && user ? (
+              {user ? (
                 <WatchlistFavoriteButtons
                   itemId={movie.id}
                   itemType="movie"
-                  userId={user.id}
                   title={movie.title}
                 />
               ) : (
@@ -321,11 +320,10 @@ export default function MovieDetailsPage({ params }: Props) {
               </button>
               {showStreamingPlayer && (
                 <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-                  <iframe
+                  <ProxyVideoPlayer
                     src={movie.streamingUrl}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                    className="w-full h-full"
                     title={`${movie.title} Streaming Player`}
+                    className="w-full h-full"
                   />
                 </div>
               )}

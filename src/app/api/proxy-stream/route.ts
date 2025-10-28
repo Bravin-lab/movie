@@ -1,197 +1,220 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Enhanced ad filtering for HLS manifests - more aggressive filtering
 function filterHLSManifest(manifestText: string): string {
   const adIndicators = [
+    // Standard ad tags
     '#EXT-X-DATERANGE:CLASS="ad"',
     '#EXT-X-DATERANGE:ID="ad"',
     '#EXT-X-DATERANGE:CLASS="com.apple.ads"',
-    '#EXT-X-DATERANGE:ID="preroll"',
-    '#EXT-X-DATERANGE:ID="midroll"',
-    '#EXT-X-DATERANGE:ID="postroll"',
-    '#EXT-X-CUE',
     '#EXT-X-SCTE35',
+    '#EXT-X-CUE',
+    '#EXT-X-CUE-IN',
+    '#EXT-X-CUE-OUT',
+    '#EXT-X-CUE-OUT-CONT',
+
+    // Common ad keywords in URLs and metadata
     'ad',
     'ads',
     'advert',
     'advertisement',
-    'skip',
     'preroll',
-    'postroll',
     'midroll',
+    'postroll',
+    'sponsor',
+    'sponsored',
     'commercial',
     'promo',
-    'sponsor',
-    'redirect',
-    'click',
-    'pause',
-    'overlay',
-    'banner',
-    'popup',
-    'interstitial',
+    'promotion',
     'tracking',
     'analytics',
     'impression',
-    'adsegment',
-    'adbreak',
-    'ad-marker',
-    'ad_tag',
-    'ad_url',
-    'touch',
-    'interaction',
-    'useraction',
-    'user_interaction',
-    'cue',
-    'scte',
-    'break',
-    'slate',
+    'pixel',
+    'beacon',
+    'vast',
+    'vpaid',
+    'ima',
+    'doubleclick',
+    'googlesyndication',
+    'amazon-adsystem',
+    'pubmatic',
+    'appnexus',
+    'openx',
+    'thetradedesk',
+    'media.net',
+    'criteo',
+    'outbrain',
+    'taboola',
+    'yieldmo',
+    'spotx',
+    'freewheel',
+    'brightcove',
+    'jwplayer-ads',
+    'videojs-ads',
+
+    // Mobile-specific ad patterns
+    'mobile-ad',
+    'app-ad',
+    'interstitial',
+    'rewarded',
+    'native-ad',
+    'banner-ad',
+    'popup-ad',
+    'overlay-ad',
+
+    // Common ad server domains in URLs
+    'adsystem.',
+    'adserver.',
+    'doubleclick.net',
+    'googlesyndication.com',
+    'amazon-adsystem.com',
+    'pubmatic.com',
+    'appnexus.com',
+    'openx.com',
+    'thetradedesk.com',
+    'media.net',
+    'criteo.com',
+    'outbrain.com',
+    'taboola.com',
+    'yieldmo.com',
+    'spotx.tv',
+    'freewheel.tv',
+    'brightcove.com',
+    'jwplayer.com/ads',
+    'videojs.com/ads',
   ];
 
   const lines = manifestText.split('\n');
-  const filteredLines = lines.filter(line => {
+  const filteredLines: string[] = [];
+  let skipSegment = false;
+  let segmentDuration = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lowerLine = line.toLowerCase();
+
+    // Check if this line contains ad indicators
+    let isAdLine = false;
     for (const indicator of adIndicators) {
-      if (line.toLowerCase().includes(indicator.toLowerCase())) {
-        return false;
+      if (lowerLine.includes(indicator)) {
+        isAdLine = true;
+        break;
       }
     }
-    return true;
-  });
-  return filteredLines.join('\n');
-}
 
-
-
-function rewriteUrlsToAbsolute(html: string, baseUrl: string): string {
-  const url = new URL(baseUrl);
-  const base = `${url.protocol}//${url.host}`;
-
-  // Add base tag and script to proxy HLS requests
-  const script = `<script>
-const originalFetch = window.fetch;
-window.fetch = function(url, options) {
-  if (typeof url === 'string' && url.includes('.m3u8')) {
-    url = '/api/proxy-stream?url=' + encodeURIComponent(url.startsWith('http') ? url : '${base}' + url);
-  }
-  return originalFetch.call(this, url, options);
-};
-const originalXMLHttpRequest = window.XMLHttpRequest;
-window.XMLHttpRequest = function() {
-  const xhr = new originalXMLHttpRequest();
-  const originalOpen = xhr.open;
-  xhr.open = function(method, url, ...args) {
-    if (typeof url === 'string' && url.includes('.m3u8')) {
-      url = '/api/proxy-stream?url=' + encodeURIComponent(url.startsWith('http') ? url : '${base}' + url);
+    // Handle EXTINF duration lines (segment metadata)
+    if (line.startsWith('#EXTINF:')) {
+      const durationMatch = line.match(/#EXTINF:([0-9.]+)/);
+      if (durationMatch) {
+        segmentDuration = parseFloat(durationMatch[1]);
+      }
     }
-    return originalOpen.call(this, method, url, ...args);
-  };
-  return xhr;
-};
-</script>`;
-  html = html.replace(/<head>/i, `<head><base href="${base}">${script}`);
 
-  const attributes = ['src', 'href', 'data-src', 'poster'];
+    // Skip ad-related lines and very short segments (likely ads)
+    if (isAdLine || (segmentDuration > 0 && segmentDuration < 5 && lowerLine.includes('.ts'))) {
+      skipSegment = true;
+      continue;
+    }
 
-  let rewrittenHtml = html;
+    // If we're not skipping and it's a segment URL, add it
+    if (!skipSegment) {
+      filteredLines.push(line);
+    }
 
-  attributes.forEach(attr => {
-    const regex = new RegExp(`(${attr})="(/[^"]*)"`, 'gi');
-    rewrittenHtml = rewrittenHtml.replace(regex, (match, attrName, path) => {
-      return `${attrName}="${base}${path}"`;
-    });
+    // Reset skip flag after processing the segment
+    if (!line.startsWith('#') && line.trim()) {
+      skipSegment = false;
+      segmentDuration = 0;
+    }
+  }
 
-    const protocolRegex = new RegExp(`(${attr})="(//[^"]*)"`, 'gi');
-    rewrittenHtml = rewrittenHtml.replace(protocolRegex, (match, attrName, path) => {
-      const fullUrl = `${url.protocol}${path}`;
-      return `${attrName}="${fullUrl}"`;
-    });
-  });
-
-  return rewrittenHtml;
+  return filteredLines.join('\n');
 }
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
-  console.log("Proxy request for URL:", url);
   if (!url) {
-    console.error("Missing url parameter in proxy request");
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
-  // Create AbortController for timeout handling
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  // Validate URL to prevent abuse
+  try {
+    new URL(url);
+  } catch {
+    return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
+  }
+
+  // Only allow streaming URLs from trusted sources
+  const allowedDomains = [
+    'vidsrc.xyz',
+    'vidsrc.to',
+    'vidsrc.me',
+    'vidsrc.pro',
+    'embed.su',
+    'player.vidsrc.me',
+    'player.vidsrc.pro',
+    'cdn.vidsrc.me',
+    'cdn.vidsrc.pro',
+  ];
+
+  const urlObj = new URL(url);
+  const isAllowed = allowedDomains.some(domain =>
+    urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+  );
+
+  if (!isAllowed) {
+    return NextResponse.json({ error: 'Domain not allowed' }, { status: 403 });
+  }
 
   try {
     const response = await fetch(url, {
-      signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'cross-site',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
       },
     });
-    clearTimeout(timeoutId);
 
-    console.log(`Fetched URL: ${url} with status: ${response.status}`);
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
-    console.log(`Content-Type: ${contentType}`);
+    const contentType = response.headers.get('content-type') || '';
 
-    if (response.status >= 400) {
-      console.warn(`Upstream response error ${response.status} for URL: ${url}`);
-      return new NextResponse('', {
-        status: 200,
-        headers: {
-          'Content-Type': contentType,
-        },
-      });
-    }
-
+    // If it's a manifest, filter ads
     if (
       contentType.includes('application/vnd.apple.mpegurl') ||
-      contentType.includes('vnd.apple.mpegurl') ||
       url.endsWith('.m3u8')
     ) {
       const manifestText = await response.text();
-      console.log(`Original manifest length: ${manifestText.length}`);
       const filteredManifest = filterHLSManifest(manifestText);
-      console.log(`Filtered manifest length: ${filteredManifest.length}`);
       return new NextResponse(filteredManifest, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType,
-        },
-      });
-    } else if (contentType.includes('text/html')) {
-      const htmlText = await response.text();
-      console.log(`Original HTML length: ${htmlText.length}`);
-      // For streaming embeds, rewrite relative URLs to absolute to allow direct loading from vidsrc.xyz
-      const rewrittenHtml = rewriteUrlsToAbsolute(htmlText, url);
-      console.log(`Rewritten HTML length: ${rewrittenHtml.length}`);
-      return new NextResponse(rewrittenHtml, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType,
-          'Content-Security-Policy': "frame-src 'self' https://vidsrc.xyz https://*.vidsrc.xyz; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vidsrc.xyz https://*.vidsrc.xyz; style-src 'self' 'unsafe-inline' https://vidsrc.xyz https://*.vidsrc.xyz; img-src 'self' data: https:; connect-src 'self' https://vidsrc.xyz https://*.vidsrc.xyz;",
-        },
-      });
-    } else {
-      const body = await response.arrayBuffer();
-      console.log(`Forwarding content of length: ${body.byteLength}`);
-      return new NextResponse(body, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType,
-        },
+        status: 200,
+        headers: { 'Content-Type': 'application/vnd.apple.mpegurl' },
       });
     }
-  } catch (error) {
-    clearTimeout(timeoutId);
-    console.error("Failed to fetch content in proxy:", error);
 
-    // Check if it's a timeout error
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error("Request timed out for URL:", url);
-      return NextResponse.json({ error: 'Request timed out' }, { status: 504 });
-    }
-
-    // For other errors, return 500
-    return NextResponse.json({ error: 'Failed to fetch content' }, { status: 500 });
+    // Otherwise (TS segments, keys, etc.) → just proxy raw
+    const body = await response.arrayBuffer();
+    return new NextResponse(body, {
+      status: response.status,
+      headers: {
+        'Content-Type': contentType || 'application/octet-stream',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
+  } catch (err) {
+    console.error("Proxy error:", err);
+    return NextResponse.json({ error: 'Failed to fetch stream' }, { status: 500 });
   }
 }
