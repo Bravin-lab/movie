@@ -25,14 +25,23 @@ export default function LandingPage() {
     // Fetch popular movies for background slideshow
     const fetchBackgroundImages = async () => {
       try {
+        const apiKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+        console.log('API Key available:', !!apiKey); // Debug log
         const response = await fetch(
-          `https://api.themoviedb.org/3/movie/popular?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&page=1`
+          `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&page=1`
         );
+        console.log('Response status:', response.status); // Debug log
         const data = await response.json();
-        const moviesWithBackdrops = data.results
-          .filter((movie: MovieBackdrop) => movie.backdrop_path)
-          .slice(0, 10); // Get first 10 movies with backdrops
-        setBackgroundImages(moviesWithBackdrops);
+        console.log('TMDB API Response:', data); // Debug log
+        if (data.results) {
+          const moviesWithBackdrops = data.results
+            .filter((movie: MovieBackdrop) => movie.backdrop_path)
+            .slice(0, 10); // Get first 10 movies with backdrops
+          console.log('Movies with backdrops:', moviesWithBackdrops); // Debug log
+          setBackgroundImages(moviesWithBackdrops);
+        } else {
+          console.error('No results in TMDB response');
+        }
       } catch (error) {
         console.error("Failed to fetch background images:", error);
       }

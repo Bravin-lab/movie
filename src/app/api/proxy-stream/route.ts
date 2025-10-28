@@ -82,12 +82,39 @@ function filterHLSManifest(manifestText: string): string {
     'brightcove.com',
     'jwplayer.com/ads',
     'videojs.com/ads',
+
+    // Additional patterns for vidsrc and similar sites
+    'vast.',
+    'ima.',
+    'googletagmanager',
+    'google-analytics',
+    'facebook.com/tr',
+    'twitter.com/i/ads',
+    'linkedin.com/li_ads',
+    'pinterest.com/ct',
+    'tiktok.com/i/ads',
+    'snapchat.com/ads',
+    'instagram.com/ads',
+    'youtube.com/api/stats',
+    'vimeo.com/api/stats',
+    'dailymotion.com/api/stats',
+
+    // Vidsrc specific patterns
+    'vidsrc.xyz/ads',
+    'vidsrc.to/ads',
+    'vidsrc.me/ads',
+    'vidsrc.pro/ads',
+    'embed.su/ads',
+    'player.vidsrc.me/ads',
+    'cdn.vidsrc.me/ads',
+    'cdn.vidsrc.pro/ads',
   ];
 
   const lines = manifestText.split('\n');
   const filteredLines: string[] = [];
   let skipSegment = false;
   let segmentDuration = 0;
+  let inAdBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -113,7 +140,18 @@ function filterHLSManifest(manifestText: string): string {
     // Skip ad-related lines and very short segments (likely ads)
     if (isAdLine || (segmentDuration > 0 && segmentDuration < 5 && lowerLine.includes('.ts'))) {
       skipSegment = true;
+      inAdBlock = true;
       continue;
+    }
+
+    // If we're in an ad block, skip until we find a non-ad segment
+    if (inAdBlock && !line.startsWith('#') && line.trim()) {
+      // Check if this looks like a real content segment
+      if (line.includes('.ts') && segmentDuration > 10) {
+        inAdBlock = false;
+      } else {
+        continue;
+      }
     }
 
     // If we're not skipping and it's a segment URL, add it
