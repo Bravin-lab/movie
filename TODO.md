@@ -4,4 +4,4 @@
 - [x] Retain domain validation and enhanced headers
 - [x] Replace src/app/api/proxy-stream/route.ts with the integrated and corrected code
 - [x] Fix webpack build issues with Puppeteer dependencies
-- [ ] Test the proxy functionality for HLS filtering, Puppeteer extraction, and HTML injection
+- [x] Test the proxy functionality for HLS filtering, Puppeteer extraction, and HTML injection
