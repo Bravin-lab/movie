@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-// Apply stealth plugin to avoid detection
-puppeteer.use(StealthPlugin());
+// Apply stealth plugin to avoid detection (with error handling for webpack)
+try {
+  puppeteer.use(StealthPlugin());
+} catch (error) {
+  console.warn('Stealth plugin not available, proceeding without it');
+}
 
 // Enhanced ad filtering for HLS manifests - more aggressive filtering with filler replacement
 function filterHLSManifest(manifestText: string): string {

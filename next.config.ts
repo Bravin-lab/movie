@@ -17,7 +17,18 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-
+  experimental: {
+    serverComponentsExternalPackages: ['puppeteer-extra', 'puppeteer-extra-plugin-stealth'],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        'puppeteer-extra': 'commonjs puppeteer-extra',
+        'puppeteer-extra-plugin-stealth': 'commonjs puppeteer-extra-plugin-stealth',
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

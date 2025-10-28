@@ -1,6 +1,7 @@
-- [ ] Add Puppeteer logic to extract video sources from HTML pages (e.g., for embed URLs)
-- [ ] Add HTML injection: If response is HTML, inject ad-blocking scripts
-- [ ] Enhance HLS filtering with filler logic (replace ad segments with dummy content)
-- [ ] Retain domain validation and enhanced headers
-- [ ] Replace src/app/api/proxy-stream/route.ts with the integrated and corrected code
+- [x] Add Puppeteer logic to extract video sources from HTML pages (e.g., for embed URLs)
+- [x] Add HTML injection: If response is HTML, inject ad-blocking scripts
+- [x] Enhance HLS filtering with filler logic (replace ad segments with dummy content)
+- [x] Retain domain validation and enhanced headers
+- [x] Replace src/app/api/proxy-stream/route.ts with the integrated and corrected code
+- [x] Fix webpack build issues with Puppeteer dependencies
 - [ ] Test the proxy functionality for HLS filtering, Puppeteer extraction, and HTML injection
