@@ -5,7 +5,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 // Apply stealth plugin to avoid detection (with error handling for webpack)
 try {
   puppeteer.use(StealthPlugin());
-} catch (error) {
+} catch {
   console.warn('Stealth plugin not available, proceeding without it');
 }
 

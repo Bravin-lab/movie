@@ -17,9 +17,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['puppeteer-extra', 'puppeteer-extra-plugin-stealth'],
-  },
+  serverExternalPackages: ['puppeteer-extra', 'puppeteer-extra-plugin-stealth'],
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({
