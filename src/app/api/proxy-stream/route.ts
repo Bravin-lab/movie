@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Agent, fetch } from 'undici';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
@@ -178,12 +179,12 @@ function filterHLSManifest(manifestText: string, request: NextRequest): string {
   return filteredLines.join('\n');
 }
 
-// Function to extract video sources from HTML using Puppeteer
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function extractVideoSources(url: string): Promise<string[]> {
   let browser;
   try {
     browser = await puppeteer.launch({
-      headless: true,
+      headless: true, // Use headless mode
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -191,19 +192,26 @@ async function extractVideoSources(url: string): Promise<string[]> {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
         '--disable-gpu',
         '--disable-web-security',
         '--disable-features=VizDisplayCompositor',
-        '--remote-debugging-port=9222'
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images', // Speed up loading
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ],
-      timeout: 60000
+      timeout: 30000 // Reduce timeout
     });
 
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+    // Wait a bit for dynamic content to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Extract video sources
     const sources = await page.evaluate(() => {
@@ -249,10 +257,11 @@ async function extractVideoSources(url: string): Promise<string[]> {
 }
 
 // Function to inject ad-blocking scripts into HTML
-function injectAdBlockingScripts(html: string): string {
+function injectAdBlockingScripts(html: string, baseUrl: string): string {
   const adBlockScript = `
     <script>
       // Basic ad blocking script
+      const baseUrl = '${baseUrl}';
       (function() {
         // Block common ad selectors
         const adSelectors = [
@@ -283,11 +292,40 @@ function injectAdBlockingScripts(html: string): string {
         const observer = new MutationObserver(removeAds);
         observer.observe(document.body, { childList: true, subtree: true });
 
-        // Block ad network requests
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-          const url = args[0];
-          if (typeof url === 'string' && (
+        // Override document.createElement to rewrite URLs in dynamically created elements
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+          const element = originalCreateElement.call(this, tagName);
+          if (tagName === 'script' || tagName === 'link' || tagName === 'img' || tagName === 'iframe') {
+            // Intercept property sets
+            Object.defineProperty(element, 'src', {
+              get: function() { return this.getAttribute('src'); },
+              set: function(value) {
+                if (value && typeof value === 'string' && value.startsWith('/')) {
+                  value = '/api/proxy-stream?url=' + encodeURIComponent('https://vidsrc.xyz' + value);
+                }
+                this.setAttribute('src', value);
+              }
+            });
+            Object.defineProperty(element, 'href', {
+              get: function() { return this.getAttribute('href'); },
+              set: function(value) {
+                if (value && typeof value === 'string' && value.startsWith('/')) {
+                  value = '/api/proxy-stream?url=' + encodeURIComponent('https://vidsrc.xyz' + value);
+                }
+                this.setAttribute('href', value);
+              }
+            });
+          }
+          return element;
+        };
+
+        // Helper function to check if URL should be proxied
+        function shouldProxyUrl(url) {
+          if (typeof url !== 'string') return false;
+
+          // Block ad networks
+          if (
             url.includes('doubleclick.net') ||
             url.includes('googlesyndication.com') ||
             url.includes('amazon-adsystem.com') ||
@@ -306,8 +344,85 @@ function injectAdBlockingScripts(html: string): string {
             url.includes('ima.') ||
             url.includes('vast.') ||
             url.includes('vpaid.')
-          )) {
-            return Promise.reject(new Error('Ad request blocked'));
+          ) {
+            return false; // Block ads
+          }
+
+          // Proxy allowed domains
+          const allowedDomains = [
+            'vidsrc.xyz', 'vidsrc.to', 'vidsrc.me', 'vidsrc.pro', 'vidsrc-embed.ru',
+            'embed.su', 'cloudnestra.com', 'cloudnestra.net', 'player.cloudnestra.com', 'cdn.cloudnestra.com',
+            'akamaihd.net', 'fastly.net', 'cloudflare.com', 'amazonaws.com', 'googleusercontent.com',
+            'googlevideo.com', 'youtube.com', 'vimeo.com', 'dailymotion.com', 'twitch.tv'
+          ];
+
+          try {
+            const urlObj = new URL(url.startsWith('//') ? 'https:' + url : url);
+            return allowedDomains.some(domain =>
+              urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
+            );
+          } catch {
+            return false;
+          }
+        }
+
+        // Override XMLHttpRequest to rewrite URLs
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, ...args) {
+          if (typeof url === 'string') {
+            if (url.startsWith('/') && !url.startsWith('//')) {
+              // Relative URL - convert to absolute then check
+              if (!url.match(/^\/(api\/|static\/|_next\/|favicon\.|manifest\.|robots\.|sitemap\.)/) &&
+                  !url.includes('google') && !url.includes('facebook') && !url.includes('twitter') &&
+                  !url.includes('analytics') && !url.includes('tracking')) {
+                url = '/api/proxy-stream?url=' + encodeURIComponent('${baseUrl}' + url);
+              }
+            } else if (shouldProxyUrl(url)) {
+              // Absolute URL to allowed domain - proxy it
+              url = '/api/proxy-stream?url=' + encodeURIComponent(url);
+            }
+          }
+          return originalOpen.call(this, method, url, ...args);
+        };
+
+        // Block ad network requests and proxy allowed URLs
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+          let url = args[0];
+          if (typeof url === 'string') {
+            if (url.startsWith('/') && !url.startsWith('//')) {
+              // Relative URL
+              if (!url.match(/^\/(api\/|static\/|_next\/|favicon\.|manifest\.|robots\.|sitemap\.)/) &&
+                  !url.includes('google') && !url.includes('facebook') && !url.includes('twitter') &&
+                  !url.includes('analytics') && !url.includes('tracking')) {
+                url = '/api/proxy-stream?url=' + encodeURIComponent('${baseUrl}' + url);
+              }
+            } else if (shouldProxyUrl(url)) {
+              // Absolute URL to allowed domain - proxy it
+              url = '/api/proxy-stream?url=' + encodeURIComponent(url);
+            } else if (
+              // Block ad networks
+              url.includes('doubleclick.net') ||
+              url.includes('googlesyndication.com') ||
+              url.includes('amazon-adsystem.com') ||
+              url.includes('pubmatic.com') ||
+              url.includes('appnexus.com') ||
+              url.includes('openx.com') ||
+              url.includes('criteo.com') ||
+              url.includes('outbrain.com') ||
+              url.includes('taboola.com') ||
+              url.includes('yieldmo.com') ||
+              url.includes('spotx.tv') ||
+              url.includes('freewheel.tv') ||
+              url.includes('brightcove.com') ||
+              url.includes('jwplayer.com') ||
+              url.includes('videojs.com') ||
+              url.includes('ima.') ||
+              url.includes('vast.') ||
+              url.includes('vpaid.')
+            ) {
+              return Promise.reject(new Error('Ad request blocked'));
+            }
           }
           return originalFetch.apply(this, args);
         };
@@ -325,13 +440,18 @@ function injectAdBlockingScripts(html: string): string {
   }
 }
 
-// Function to rewrite URLs in HTML content
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function rewriteHTMLUrls(html: string, baseUrl: string, proxyUrl: string): string {
   const urlRegex = /(?:src|href|data-src)=["']([^"']+)["']/gi;
   const cssUrlRegex = /url\(["']?([^"'\)]+)["']?\)/gi;
 
   return html
     .replace(urlRegex, (match, url) => {
+      // Skip data URLs, anchors, and javascript
+      if (url.startsWith('data:') || url.startsWith('#') || url.startsWith('javascript:') || url.startsWith('mailto:')) {
+        return match;
+      }
+
       if (url.startsWith('http') || url.startsWith('//')) {
         // Absolute URL - proxy it
         const proxiedUrl = `${proxyUrl}?url=${encodeURIComponent(url)}`;
@@ -349,6 +469,11 @@ function rewriteHTMLUrls(html: string, baseUrl: string, proxyUrl: string): strin
       }
     })
     .replace(cssUrlRegex, (match, url) => {
+      // Skip data URLs
+      if (url.startsWith('data:')) {
+        return match;
+      }
+
       if (url.startsWith('http') || url.startsWith('//')) {
         // Absolute URL - proxy it
         const proxiedUrl = `${proxyUrl}?url=${encodeURIComponent(url)}`;
@@ -367,7 +492,7 @@ function rewriteHTMLUrls(html: string, baseUrl: string, proxyUrl: string): strin
     });
 }
 
-export async function GET(request: NextRequest) {
+export const GET = async (request: NextRequest) => {
   const url = request.nextUrl.searchParams.get('url');
   if (!url) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
@@ -391,6 +516,7 @@ export async function GET(request: NextRequest) {
     'vidsrc.to',
     'vidsrc.me',
     'vidsrc.pro',
+    'vidsrc-embed.ru',
     'embed.su',
     'player.vidsrc.me',
     'player.vidsrc.pro',
@@ -438,17 +564,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Retry logic for failed requests
+    // Handle redirects manually to follow them properly
+    let currentUrl = fullUrl;
     let response: Response | undefined;
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
-        response = await fetch(fullUrl, {
+        response = await fetch(currentUrl, {
           signal: controller.signal,
+          redirect: 'manual', // Handle redirects manually
+          dispatcher: new Agent({ connect: { timeout: 60000 } }),
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': '*/*',
@@ -463,9 +592,30 @@ export async function GET(request: NextRequest) {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache',
           },
-        });
+        }) as unknown as Response;
 
         clearTimeout(timeoutId);
+
+        // Handle redirects
+        if (response!.status >= 300 && response!.status < 400) {
+          const location = response!.headers.get('location');
+          if (location) {
+            // Check if redirect is to an allowed domain
+            const redirectUrl = location.startsWith('http') ? location : new URL(location, currentUrl).href;
+            const redirectUrlObj = new URL(redirectUrl);
+            const isRedirectAllowed = allowedDomains.some(domain =>
+              redirectUrlObj.hostname === domain || redirectUrlObj.hostname.endsWith('.' + domain)
+            );
+
+            if (isRedirectAllowed) {
+              currentUrl = redirectUrl;
+              continue; // Retry with new URL
+            } else {
+              return NextResponse.json({ error: 'Redirect to unauthorized domain' }, { status: 403 });
+            }
+          }
+        }
+
         break; // Success, exit retry loop
 
       } catch (err) {
@@ -484,14 +634,16 @@ export async function GET(request: NextRequest) {
       throw lastError || new Error('Failed to fetch after retries');
     }
 
-    const contentType = response.headers.get('content-type') || '';
+    // Type assertion since we've checked response is not undefined
+    const safeResponse = response as Response;
+    const contentType = safeResponse.headers.get('content-type') || '';
 
     // If it's a manifest, filter ads
     if (
       contentType.includes('application/vnd.apple.mpegurl') ||
       url.endsWith('.m3u8')
     ) {
-      const manifestText = await response.text();
+      const manifestText = await safeResponse.text();
       const filteredManifest = filterHLSManifest(manifestText, request);
       return new NextResponse(filteredManifest, {
         status: 200,
@@ -501,55 +653,57 @@ export async function GET(request: NextRequest) {
 
     // If it's HTML content, extract video sources with Puppeteer and inject ad-blocking
     if (contentType.includes('text/html')) {
-      const htmlText = await response.text();
-      const baseUrl = `${urlObj.protocol}//${urlObj.host}`;
-      const proxyUrl = `${request.nextUrl.origin}/api/proxy-stream`;
+      let text = await safeResponse.text();
 
-      // Extract video sources using Puppeteer
-      const videoSources = await extractVideoSources(fullUrl);
+      // Rewrite URLs in src and href attributes
+      const baseUrl = new URL(currentUrl).origin;
+      text = text.replace(
+        /(src|href)="([^"]*)"/g,
+        (match, attr, url) => {
+          // Skip data URLs, anchors, javascript, and mailto
+          if (url.startsWith('data:') || url.startsWith('#') || url.startsWith('javascript:') || url.startsWith('mailto:')) {
+            return match;
+          }
 
-      // Rewrite URLs and inject ad-blocking scripts
-      let processedHtml = rewriteHTMLUrls(htmlText, baseUrl, proxyUrl);
-      processedHtml = injectAdBlockingScripts(processedHtml);
+          // Skip certain URLs that cause 404 errors
+          if (url === 'favicon.ico' ||
+              url.startsWith('api/') || url.startsWith('static/')) {
+            return match; // Don't rewrite
+          }
 
-      // If video sources were found, prioritize them
-      if (videoSources.length > 0) {
-        // Create a simple HTML page with the extracted video sources
-        const videoHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Video Player</title>
-            <style>
-              body { margin: 0; background: #000; }
-              video { width: 100%; height: 100vh; }
-            </style>
-          </head>
-          <body>
-            <video controls autoplay>
-              ${videoSources.map(src => `<source src="${proxyUrl}?url=${encodeURIComponent(src)}" type="video/mp4">`).join('\n')}
-            </video>
-          </body>
-          </html>
-        `;
-        processedHtml = videoHtml;
-      }
+          let proxiedUrl: string;
+          if (url.startsWith('http') || url.startsWith('//')) {
+            // Absolute URL - proxy it
+            proxiedUrl = `${request.nextUrl.origin}/api/proxy-stream?url=${encodeURIComponent(url)}`;
+          } else if (url.startsWith('/')) {
+            // Root-relative URL - convert to absolute then proxy
+            const absoluteUrl = baseUrl + url;
+            proxiedUrl = `${request.nextUrl.origin}/api/proxy-stream?url=${encodeURIComponent(absoluteUrl)}`;
+          } else {
+            // Relative URL - convert to absolute then proxy
+            const absoluteUrl = new URL(url, currentUrl).href;
+            proxiedUrl = `${request.nextUrl.origin}/api/proxy-stream?url=${encodeURIComponent(absoluteUrl)}`;
+          }
 
-      return new NextResponse(processedHtml, {
-        status: response.status,
+          return `${attr}="${proxiedUrl}"`;
+        }
+      );
+
+      // Inject ad-blocking scripts to rewrite dynamic URL requests
+      text = injectAdBlockingScripts(text, baseUrl);
+
+      return new NextResponse(text, {
+        status: safeResponse.status,
         headers: {
-          'Content-Type': 'text/html',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Content-Type': contentType,
         },
       });
     }
 
     // Otherwise (TS segments, keys, JS, CSS, images, etc.) → just proxy raw
-    const body = await response.arrayBuffer();
+    const body = await safeResponse.arrayBuffer();
     return new NextResponse(body, {
-      status: response.status,
+      status: safeResponse.status,
       headers: {
         'Content-Type': contentType || 'application/octet-stream',
         'Access-Control-Allow-Origin': '*',
@@ -565,7 +719,7 @@ export async function GET(request: NextRequest) {
     if (err instanceof Error && err.name === 'AbortError') {
       return NextResponse.json({ error: 'Request timeout' }, { status: 408 });
     }
-    if (err instanceof Error && (err as any).cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
+    if (err instanceof Error && (err as Error & { cause?: { code?: string } }).cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
       return NextResponse.json({ error: 'Connection timeout' }, { status: 408 });
     }
     return NextResponse.json({ error: 'Failed to fetch stream' }, { status: 500 });
