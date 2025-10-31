@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 interface ProxyVideoPlayerProps {
   src: string;
@@ -15,7 +15,7 @@ export default function ProxyVideoPlayer({ src, title, className = "" }: ProxyVi
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Extract video sources from the proxy URL
-  const extractVideoSources = async () => {
+  const extractVideoSources = useCallback(async () => {
     if (!src.includes('/api/proxy-stream')) return;
 
     setIsLoading(true);
@@ -35,7 +35,7 @@ export default function ProxyVideoPlayer({ src, title, className = "" }: ProxyVi
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [src]);
 
   useEffect(() => {
     if (src && !useCustomPlayer) {

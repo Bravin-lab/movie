@@ -689,8 +689,10 @@ export const GET = async (request: NextRequest) => {
         }
       );
 
-      // Inject ad-blocking scripts to rewrite dynamic URL requests
-      text = injectAdBlockingScripts(text, baseUrl);
+      // Only inject ad-blocking scripts for non-vidsrc domains to avoid interfering with player functionality
+      if (!urlObj.hostname.includes('vidsrc')) {
+        text = injectAdBlockingScripts(text, baseUrl);
+      }
 
       return new NextResponse(text, {
         status: safeResponse.status,
