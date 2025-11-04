@@ -177,7 +177,7 @@ export default function HomePage() {
 
       <div className="relative p-8 max-w-7xl mx-auto">
       <header
-        className="mb-12 text-center bg-cover bg-center bg-no-repeat p-6 sm:p-12 rounded-lg relative overflow-hidden"
+        className="mb-12 text-center bg-cover bg-center bg-no-repeat p-6 sm:p-12 rounded-lg relative"
         style={{ backgroundImage: trending.length > 0 ? `url(https://image.tmdb.org/t/p/original${trending[Math.floor(Math.random() * trending.length)].poster_path})` : undefined }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-indigo-900 to-black opacity-80"></div>

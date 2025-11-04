@@ -62,7 +62,7 @@ export default function GenreDropdown({ genres = [], selectedGenre, onChange }: 
   const selectedGenreName = selectedGenre ? allGenres.find(g => g.id === selectedGenre)?.name : "All Genres";
 
   return (
-    <div className="relative inline-block w-full max-w-md" ref={dropdownRef}>
+    <div className="relative inline-block w-full max-w-md" ref={dropdownRef} style={{ zIndex: 9999, position: 'relative' }}>
       <button
         type="button"
         className="w-full px-4 py-2 text-left rounded-md border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
@@ -78,7 +78,8 @@ export default function GenreDropdown({ genres = [], selectedGenre, onChange }: 
           tabIndex={-1}
           role="listbox"
           aria-activedescendant={selectedGenre ? `genre-${selectedGenre}` : undefined}
-          className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-800 py-1 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+          className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-800 py-1 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+          style={{ zIndex: 10000, position: 'absolute' }}
         >
           <li
             key="all-genres"

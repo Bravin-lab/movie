@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
       body = filterAdsFromHtml(body);
     }
 
+    // If it's an HLS manifest, filter out ads
+    if (contentType.includes('application/vnd.apple.mpegurl') || contentType.includes('application/x-mpegurl') || url.includes('.m3u8')) {
+      body = filterHLSManifest(body);
+    }
+
     // Return the filtered content with appropriate headers
     const headers = new Headers();
     headers.set('Content-Type', contentType);
@@ -46,6 +51,91 @@ export async function GET(request: NextRequest) {
     console.error('Proxy error:', error);
     return NextResponse.json({ error: 'Proxy failed' }, { status: 500 });
   }
+}
+
+function filterHLSManifest(manifestText: string): string {
+  const adIndicators = [
+    '#EXT-X-DATERANGE:CLASS="ad"',
+    '#EXT-X-DATERANGE:ID="ad"',
+    '#EXT-X-DATERANGE:CLASS="com.apple.ads"',
+    '#EXT-X-DATERANGE:ID="preroll"',
+    '#EXT-X-DATERANGE:ID="midroll"',
+    '#EXT-X-DATERANGE:ID="postroll"',
+    '#EXT-X-CUE',
+    '#EXT-X-SCTE35',
+    'ad',
+    'ads',
+    'advert',
+    'advertisement',
+    'skip',
+    'preroll',
+    'postroll',
+    'midroll',
+    'commercial',
+    'promo',
+    'sponsor',
+    'redirect',
+    'click',
+    'pause',
+    'overlay',
+    'banner',
+    'popup',
+    'interstitial',
+    'tracking',
+    'analytics',
+    'impression',
+    'adsegment',
+    'adbreak',
+    'ad-marker',
+    'ad_tag',
+    'ad_url',
+    'touch',
+    'interaction',
+    'useraction',
+    'user_interaction',
+    'cue',
+    'scte',
+    'break',
+    'slate',
+  ];
+
+  const lines = manifestText.split('\n');
+  const filteredLines = [];
+  let skipSegment = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const lowerLine = line.toLowerCase();
+
+    // Check if this line contains ad indicators
+    const hasAdIndicator = adIndicators.some(indicator =>
+      lowerLine.includes(indicator.toLowerCase())
+    );
+
+    if (hasAdIndicator) {
+      console.log('Filtered ad line from HLS manifest:', line);
+      skipSegment = true;
+      continue;
+    }
+
+    // If we're in a segment that should be skipped, continue skipping until next segment
+    if (skipSegment) {
+      if (line.startsWith('#EXTINF') || line.startsWith('#EXT-X-ENDLIST')) {
+        skipSegment = false;
+      } else {
+        continue;
+      }
+    }
+
+    // Skip empty lines and comments that are ad-related
+    if (line === '' || (line.startsWith('#') && hasAdIndicator)) {
+      continue;
+    }
+
+    filteredLines.push(line);
+  }
+
+  return filteredLines.join('\n');
 }
 
 function filterAdsFromHtml(html: string): string {
