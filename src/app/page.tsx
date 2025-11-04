@@ -11,6 +11,39 @@ interface MovieBackdrop {
   title: string;
 }
 
+const FloatingParticles = () => {
+  const particles = Array.from({ length: 50 }, (_, i) => i);
+
+  return (
+    <>
+      {particles.map((particle) => (
+        <motion.div
+          key={particle}
+          className="absolute w-1 h-1 bg-white rounded-full"
+          initial={{
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
+            scale: Math.random() * 0.5 + 0.5,
+            opacity: Math.random() * 0.5 + 0.3,
+          }}
+          animate={{
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
+            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
+            scale: Math.random() * 0.5 + 0.5,
+            opacity: Math.random() * 0.5 + 0.3,
+          }}
+          transition={{
+            duration: Math.random() * 10 + 5,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </>
+  );
+};
+
 export default function LandingPage() {
   const router = useRouter();
   const [backgroundImages, setBackgroundImages] = useState<MovieBackdrop[]>([]);
@@ -19,7 +52,7 @@ export default function LandingPage() {
   const [showWelcome, setShowWelcome] = useState(false);
 
   const fullText = "Made with ❤️ by Bravin";
-  const welcomeText = "Welcome to Movie Hub";
+  const welcomeText = "Welcome";
 
   useEffect(() => {
     // Fetch popular movies for background slideshow
@@ -134,13 +167,16 @@ export default function LandingPage() {
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       ></motion.div>
 
+      {/* Floating Particles */}
+      <FloatingParticles />
+
       <div className="text-center relative z-10 px-4">
         {showWelcome && (
           <motion.h1
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="text-5xl md:text-7xl font-extrabold mb-6 text-gray-300"
+            className="text-5xl md:text-7xl font-extrabold mb-6 text-white animate-text-flicker"
           >
             {welcomeText}
           </motion.h1>
