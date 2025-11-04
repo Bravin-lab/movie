@@ -8,7 +8,6 @@ import { searchYouTubeTrailer } from "@/lib/youtube";
 import { FaPlay } from "react-icons/fa";
 import Image from "next/image";
 import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
-import ProxyVideoPlayer from "@/components/ProxyVideoPlayer";
 import { useUser } from "@/lib/UserContext";
 
 interface TVShowDetails {
@@ -27,7 +26,6 @@ interface TVShowDetails {
     season_number: number;
     name: string;
   }[];
-  streamingUrl?: string;
 }
 
 interface Props {
@@ -45,7 +43,6 @@ export default function TVShowDetailsPage({ params }: Props) {
 
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
-  const [streamingUrl, setStreamingUrl] = useState<string | null>(null);
   const router = useRouter();
 
   const [youtubeVideoId, setYoutubeVideoId] = React.useState<string | null>(null);
@@ -74,7 +71,7 @@ export default function TVShowDetailsPage({ params }: Props) {
     }
     fetchDetails();
   }, [unwrappedParams.id]);
-  
+
   useEffect(() => {
     async function fetchYouTubeTrailer() {
       if (tvShow && !youtubeVideoId) {
@@ -112,21 +109,6 @@ export default function TVShowDetailsPage({ params }: Props) {
     }
     fetchEpisodes();
   }, [selectedSeason, tvShow]);
-
-  useEffect(() => {
-      if (tvShow && selectedSeason !== null && selectedEpisode !== null) {
-        // Try to get streaming URL from Jellyfin first
-        async function getStreamingUrl() {
-          if (!tvShow) return;
-
-          // Get streaming URL from vidsrc
-          const targetUrl = `https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}&ds_lang=de`;
-          const url = `/api/proxy-stream?url=${encodeURIComponent(targetUrl)}`;
-          setStreamingUrl(url);
-        }
-        getStreamingUrl();
-      }
-  }, [tvShow, selectedSeason, selectedEpisode]);
 
   if (loading) {
     return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading TV show details...</div>;
@@ -186,7 +168,7 @@ export default function TVShowDetailsPage({ params }: Props) {
 
           {/* Content */}
           <div className="flex-1 max-w-4xl text-center lg:text-left">
-            <h1 className="text-4xl lg:text-6xl font-extrabold mb-6 tracking-tight bg-gradient-to-r from-white via-purple-200 to-indigo-200 bg-clip-text text-transparent">
+            <h1 className="text-4xl lg:text-6xl font-extrabold mb-6 tracking-tight text-gray-300">
               {tvShow.name}
             </h1>
 
@@ -218,7 +200,7 @@ export default function TVShowDetailsPage({ params }: Props) {
           </div>
         </div>
       </div>
- 
+
       {/* Content Section */}
       <div className="relative -mt-32 z-10 px-6 lg:px-10 pb-20">
         <div className="max-w-7xl mx-auto space-y-12">
@@ -257,7 +239,7 @@ export default function TVShowDetailsPage({ params }: Props) {
               </div>
             )}
           </div>
- 
+
           {/* Main Content */}
           <div className="lg:col-span-2">
             <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -273,7 +255,7 @@ export default function TVShowDetailsPage({ params }: Props) {
                 </span>
               ))}
             </div>
- 
+
             <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Cast
             </h2>
@@ -301,7 +283,7 @@ export default function TVShowDetailsPage({ params }: Props) {
                 </div>
               ))}
             </div>
- 
+
             <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
               <div className="flex flex-wrap gap-4">
                 {user ? (
@@ -315,7 +297,7 @@ export default function TVShowDetailsPage({ params }: Props) {
                 )}
               </div>
             </div>
- 
+
             <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
               <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                 Trailer
@@ -353,8 +335,8 @@ export default function TVShowDetailsPage({ params }: Props) {
                 <p className="text-gray-400 text-lg text-center py-8">No trailer available.</p>
               )}
             </div>
- 
-            {streamingUrl && (
+
+            {selectedSeason !== null && selectedEpisode !== null && (
               <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
                 <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   Watch Now
@@ -377,10 +359,12 @@ export default function TVShowDetailsPage({ params }: Props) {
                 </button>
                 {showStreamingPlayer && (
                   <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-                    <ProxyVideoPlayer
-                      src={streamingUrl}
+                    <iframe
+                      src={`/api/proxy-iframe?url=${encodeURIComponent(`https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}&ds_lang=de`)}`}
                       title={`Episode ${selectedEpisode} Player`}
-                      className="w-full h-full"
+                      className="w-full h-full border-0"
+                      allowFullScreen
+                      allow="autoplay; encrypted-media"
                     />
                   </div>
                 )}

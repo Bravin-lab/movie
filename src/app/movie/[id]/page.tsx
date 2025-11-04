@@ -8,7 +8,6 @@ import { searchYouTubeTrailer } from "@/lib/youtube";
 
 import { FaPlay } from "react-icons/fa";
 import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
-import ProxyVideoPlayer from "@/components/ProxyVideoPlayer";
 import { useUser } from "@/lib/UserContext";
 
 interface MovieDetails {
@@ -19,14 +18,13 @@ interface MovieDetails {
   vote_average: number;
   genres: { id: number; name: string }[];
   credits: {
-    cast: { id: number; name: string; character: string; profile_path: string | null }[];
+    cast: { id: number; name: string; character?: string; profile_path: string | null }[];
   };
   videos: {
     results: { id: string; key: string; name: string; site: string; type: string }[];
   };
   poster_path: string | null;
   backdrop_path: string | null;
-  streamingUrl?: string;
 };
 
 interface Props {
@@ -40,7 +38,6 @@ export default function MovieDetailsPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [showYouTubePlayer, setShowYouTubePlayer] = useState(false);
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
-  const [showStreamingPlayer, setShowStreamingPlayer] = useState(false);
   const router = useRouter();
 
   const { user } = useUser();
@@ -50,12 +47,7 @@ export default function MovieDetailsPage({ params }: Props) {
       try {
         const unwrappedParams = await params;
         const data = await getMovieDetails(Number(unwrappedParams.id));
-
-        // Get streaming URL from vidsrc
-        const targetUrl = `https://vidsrc.xyz/embed/movie?tmdb=${data.id}`;
-        const streamingUrl = `/api/proxy-stream?url=${encodeURIComponent(targetUrl)}`;
-
-        setMovie({ ...data, streamingUrl } as MovieDetails);
+        setMovie(data);
       } catch (error) {
         console.error("Failed to fetch movie details", error);
       } finally {
@@ -64,7 +56,6 @@ export default function MovieDetailsPage({ params }: Props) {
     }
     fetchDetails();
   }, [params]);
-
 
   React.useEffect(() => {
     async function fetchYouTubeTrailer() {
@@ -103,10 +94,6 @@ export default function MovieDetailsPage({ params }: Props) {
 
   function toggleYouTubePlayer() {
     setShowYouTubePlayer((prev) => !prev);
-  }
-
-  function toggleStreamingPlayer() {
-    setShowStreamingPlayer((prev) => !prev);
   }
 
   const backdropUrl = movie.backdrop_path ? `https://image.tmdb.org/t/p/w1280${movie.backdrop_path}` : null;
@@ -153,7 +140,7 @@ export default function MovieDetailsPage({ params }: Props) {
 
           {/* Content */}
           <div className="flex-1 max-w-4xl text-center lg:text-left">
-            <h1 className="text-4xl lg:text-6xl font-extrabold mb-6 tracking-tight bg-gradient-to-r from-white via-purple-200 to-indigo-200 bg-clip-text text-transparent">
+            <h1 className="text-4xl lg:text-6xl font-extrabold mb-6 tracking-tight text-gray-300">
               {movie.title}
             </h1>
 
@@ -200,7 +187,6 @@ export default function MovieDetailsPage({ params }: Props) {
       {/* Content Section */}
       <div className="relative -mt-32 z-10 px-6 lg:px-10 pb-20">
         <div className="max-w-7xl mx-auto space-y-12">
-
 
           {/* Cast Section */}
           <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
@@ -297,38 +283,20 @@ export default function MovieDetailsPage({ params }: Props) {
           </div>
 
           {/* Streaming Section */}
-          {movie.streamingUrl && (
-            <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
-              <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Watch Now
-              </h2>
-              <button
-                onClick={toggleStreamingPlayer}
-                className="mb-6 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center gap-3 justify-center shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105"
-              >
-                {showStreamingPlayer ? (
-                  <>
-                    <FaPlay className="animate-pulse" />
-                    Hide Streaming Player
-                  </>
-                ) : (
-                  <>
-                    <FaPlay className="animate-pulse" />
-                    Play Movie
-                  </>
-                )}
-              </button>
-              {showStreamingPlayer && (
-                <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-                  <ProxyVideoPlayer
-                    src={movie.streamingUrl}
-                    title={`${movie.title} Streaming Player`}
-                    className="w-full h-full"
-                  />
-                </div>
-              )}
+          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+            <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Watch Now
+            </h2>
+            <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+              <iframe
+                src={`/api/proxy-iframe?url=${encodeURIComponent(`https://vidsrc.xyz/embed/movie?tmdb=${movie.id}`)}`}
+                title={`${movie.title} Streaming Player`}
+                className="w-full h-full border-0"
+                allowFullScreen
+                allow="autoplay; encrypted-media"
+              />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </main>

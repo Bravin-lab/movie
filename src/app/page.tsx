@@ -150,10 +150,11 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 1 }}
-          className="text-lg md:text-xl text-gray-300 mb-8"
+          className="text-lg md:text-xl text-gray-300 mb-8 font-mono"
         >
+          <span className="text-green-400">$ </span>
           {subtitleText}
-          <span className="animate-pulse">|</span>
+          <span className="animate-pulse text-green-400">|</span>
         </motion.p>
 
         <motion.div
