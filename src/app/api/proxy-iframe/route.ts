@@ -168,27 +168,59 @@ function filterAdsFromHtml(html: string, strictMode: boolean = false): string {
     setInterval(cleanup, 1500);
 
     ${strictMode ? `
-      // ⚔️ Strict Mode: disable all clicks until video plays
+      // ⚔️ Strict Mode: adaptive blocking based on device type
       let strictEnabled = true;
-      document.addEventListener('click', (e) => {
-        if (!strictEnabled) return;
-        const video = document.querySelector('video');
-        if (video && video.contains(e.target)) return;
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        console.log('Strict mode blocked click:', e.target);
-      }, true);
 
-      document.addEventListener('touchstart', (e) => {
-        if (!strictEnabled) return;
-        const video = document.querySelector('video');
-        if (video && video.contains(e.target)) return;
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        console.log('Strict mode blocked touch:', e.target);
-      }, true);
+      // Detect touchscreen device
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
 
-      // Disable strict when video starts
+      if (isTouchDevice) {
+        // Touchscreen devices: block simulated mouse events, allow native touch
+        document.addEventListener('click', (e) => {
+          if (!strictEnabled) return;
+          const video = document.querySelector('video');
+          if (video && video.contains(e.target)) return;
+          // Block clicks that aren't from real user interaction (often from scripts)
+          if (!e.isTrusted) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            console.log('Strict mode blocked untrusted click on touch device:', e.target);
+          }
+        }, true);
+
+        // Allow touch events but monitor for suspicious patterns
+        document.addEventListener('touchstart', (e) => {
+          if (!strictEnabled) return;
+          const video = document.querySelector('video');
+          if (video && video.contains(e.target)) return;
+          // Only block if multiple touches or suspicious timing
+          if (e.touches.length > 1 || e.changedTouches.length > 1) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            console.log('Strict mode blocked multi-touch on touch device:', e.target);
+          }
+        }, true);
+      } else {
+        // Mouse devices: block all clicks until video plays
+        document.addEventListener('click', (e) => {
+          if (!strictEnabled) return;
+          const video = document.querySelector('video');
+          if (video && video.contains(e.target)) return;
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          console.log('Strict mode blocked click on mouse device:', e.target);
+        }, true);
+
+        // Block touch events on mouse devices (rare but possible)
+        document.addEventListener('touchstart', (e) => {
+          if (!strictEnabled) return;
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          console.log('Strict mode blocked touch on mouse device:', e.target);
+        }, true);
+      }
+
+      // Disable strict when video starts playing
       const waitVideo = setInterval(() => {
         const v = document.querySelector('video');
         if (v) {
