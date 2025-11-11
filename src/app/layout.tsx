@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { UserProvider } from "@/lib/UserContext";
 import type { Metadata } from 'next';
+import Script from 'next/script';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,13 +32,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script src="https://cmp.gatekeeperconsent.com/min.js" data-cfasync="false"></script>
-        <script src="https://the.gatekeeperconsent.com/cmp.min.js" data-cfasync="false"></script>
-        <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
-        <script>
-          window.ezstandalone = window.ezstandalone || {};
-          ezstandalone.cmd = ezstandalone.cmd || [];
-        </script>
+        <Script src="https://cmp.gatekeeperconsent.com/min.js" data-cfasync="false" />
+        <Script src="https://the.gatekeeperconsent.com/cmp.min.js" data-cfasync="false" />
+        <Script async src="//www.ezojs.com/ezoic/sa.min.js" />
+        <Script
+          id="ezoic-init"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.ezstandalone = window.ezstandalone || {};
+              ezstandalone.cmd = ezstandalone.cmd || [];
+            `,
+          }}
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <UserProvider>
@@ -45,7 +51,8 @@ export default function RootLayout({
           {children}
           <Footer />
         </UserProvider>
-        <script
+        <Script
+          id="service-worker"
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
