@@ -1,0 +1,391 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { FaDownload, FaCheck, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { getMoviesByIMDB } from '@/lib/yts';
+
+export type DownloadSectionProps = {
+  imdbId: string;
+  title?: string;  // added
+  year?: number;   // added
+}
+
+interface YTSMovie {
+  id: number;
+  url: string;
+  imdb_code: string;
+  title: string;
+  title_english: string;
+  title_long: string;
+  slug: string;
+  year: number;
+  rating: number;
+  runtime: number;
+  genres: string[];
+  summary: string;
+  description_full: string;
+  synopsis: string;
+  yt_trailer_code: string;
+  language: string;
+  mpa_rating: string;
+  background_image: string;
+  background_image_original: string;
+  small_cover_image: string;
+  medium_cover_image: string;
+  large_cover_image: string;
+  state: string;
+  torrents: YTSTorrent[];
+  date_uploaded: string;
+  date_uploaded_unix: number;
+}
+
+interface YTSTorrent {
+  url: string;
+  hash: string;
+  quality: string;
+  type: string;
+  seeds: number;
+  peers: number;
+  size: string;
+  size_bytes: number;
+  date_uploaded: string;
+  date_uploaded_unix: number;
+}
+
+interface DownloadStatus {
+  id: string;
+  fileName: string;
+  status: 'downloading' | 'completed' | 'error';
+  progress: number;
+  speed: number;
+  peers: number;
+  size: number;
+  downloaded: number;
+  timeRemaining: number;
+  error?: string;
+}
+
+export default function DownloadSection(props: DownloadSectionProps) {
+  const { imdbId } = props;
+  const [selectedQuality, setSelectedQuality] = useState('1080p');
+  const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
+  const [isStartingDownload, setIsStartingDownload] = useState(false);
+  const [downloadId, setDownloadId] = useState<string | null>(null);
+  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [ytsMovies, setYtsMovies] = useState<YTSMovie[]>([]);
+  const [loadingYTS, setLoadingYTS] = useState(false);
+
+
+
+  useEffect(() => {
+    const fetchYTSMovies = async () => {
+      if (!imdbId) return;
+      setLoadingYTS(true);
+      try {
+        const movies = await getMoviesByIMDB(imdbId);
+        setYtsMovies(movies);
+      } catch (error) {
+        console.error('Failed to fetch YTS movies:', error);
+      } finally {
+        setLoadingYTS(false);
+      }
+    };
+    fetchYTSMovies();
+  }, [imdbId]);
+
+  const startDownload = async () => {
+    if (!imdbId || ytsMovies.length === 0) return;
+
+    setIsStartingDownload(true);
+    try {
+      // Find the torrent with the selected quality
+      const movie = ytsMovies[0]; // Assuming first movie is the best match
+      const torrent = movie.torrents.find(t => t.quality === selectedQuality);
+
+      if (!torrent) {
+        throw new Error(`No ${selectedQuality} torrent available`);
+      }
+
+      const response = await fetch('/api/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          magnetUrl: torrent.url,
+          title: movie.title,
+          quality: selectedQuality,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to start download');
+      }
+
+      const result = await response.json();
+      setDownloadId(result.downloadId);
+
+      // Start polling for status
+      startPolling(result.downloadId);
+
+    } catch (error) {
+      console.error('Download start error:', error);
+      alert(`Failed to start download: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsStartingDownload(false);
+    }
+  };
+
+  const startPolling = (id: string) => {
+    // Clear existing interval
+    if (pollInterval) {
+      clearInterval(pollInterval);
+    }
+
+    // Poll every 2 seconds
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/download?downloadId=${id}`);
+        if (response.ok) {
+          const status = await response.json();
+          setDownloadStatus(status);
+
+          // Stop polling if completed or error
+          if (status.status === 'completed' || status.status === 'error') {
+            clearInterval(interval);
+            setPollInterval(null);
+          }
+        } else if (response.status === 404) {
+          // Download not found, stop polling
+          clearInterval(interval);
+          setPollInterval(null);
+          setDownloadStatus(null);
+          setDownloadId(null);
+        }
+      } catch (error) {
+        console.error('Status check error:', error);
+      }
+    }, 2000);
+
+    setPollInterval(interval);
+  };
+
+  const downloadFile = () => {
+    if (!downloadId) return;
+    
+    // Use Next.js API proxy instead of direct VPS access
+    window.open(`/api/download/file/${downloadId}`, '_blank');
+    
+    // Or trigger download programmatically:
+    // const link = document.createElement('a');
+    // link.href = `/api/download/file/${downloadId}`;
+    // link.download = downloadStatus?.fileName || 'movie.mp4';
+    // document.body.appendChild(link);
+    // link.click();
+    // document.body.removeChild(link);
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatSpeed = (bytesPerSecond: number) => {
+    return formatSize(bytesPerSecond) + '/s';
+  };
+
+  const formatTime = (milliseconds: number) => {
+    if (!milliseconds || milliseconds === Infinity) return 'Unknown';
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [pollInterval]);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+      <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+        Download Movie
+      </h2>
+
+      {!downloadStatus && !downloadId && (
+        <div className="space-y-6">
+          {loadingYTS ? (
+            <div className="text-center text-gray-400">
+              <FaSpinner className="animate-spin inline mr-2" />
+              Loading available torrents...
+            </div>
+          ) : ytsMovies.length > 0 ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Select Quality
+                </label>
+                <select
+                  value={selectedQuality}
+                  onChange={(e) => setSelectedQuality(e.target.value)}
+                  className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                >
+                  {ytsMovies[0].torrents.map((torrent) => (
+                    <option key={torrent.quality} value={torrent.quality}>
+                      {torrent.quality} ({torrent.size}) - Seeds: {torrent.seeds}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={startDownload}
+                disabled={isStartingDownload}
+                className="w-full px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center justify-center gap-3 shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isStartingDownload ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Starting Download...
+                  </>
+                ) : (
+                  <>
+                    <FaDownload />
+                    Start Download ({selectedQuality})
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <div className="text-center text-gray-400">
+              No torrents available for this movie.
+            </div>
+          )}
+        </div>
+      )}
+
+      {downloadStatus && (
+        <div className="space-y-6">
+          <div className="bg-gray-800/50 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">
+                {downloadStatus.fileName}
+              </h3>
+              <div className="flex items-center gap-2">
+                {downloadStatus.status === 'downloading' && (
+                  <FaSpinner className="animate-spin text-blue-400" />
+                )}
+                {downloadStatus.status === 'completed' && (
+                  <FaCheck className="text-green-400" />
+                )}
+                {downloadStatus.status === 'error' && (
+                  <FaExclamationTriangle className="text-red-400" />
+                )}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  downloadStatus.status === 'completed'
+                    ? 'bg-green-500/20 text-green-400'
+                    : downloadStatus.status === 'error'
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {downloadStatus.status}
+                </span>
+              </div>
+            </div>
+
+            {downloadStatus.status === 'downloading' && (
+              <div className="space-y-3">
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${downloadStatus.progress}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-sm text-gray-400">
+                  <span>
+                    {(Number(downloadStatus.progress) || 0).toFixed(1)}%
+                  </span>
+                  <span>{formatSpeed(downloadStatus.speed)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Downloaded</p>
+                    <p className="text-white">
+                      {formatSize(downloadStatus.downloaded || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Total Size</p>
+                    <p className="text-white">
+                      {formatSize(downloadStatus.size || 0)}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-400">Peers:</span> {downloadStatus.peers}
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Size:</span> {formatSize(downloadStatus.size)}
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Downloaded:</span> {formatSize(downloadStatus.downloaded)}
+                  </div>
+                  <div>
+                    <span className="text-gray-400">ETA:</span> {formatTime(downloadStatus.timeRemaining)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {downloadStatus.status === 'error' && (
+              <div className="text-red-400 text-sm">
+                Error: {downloadStatus.error}
+              </div>
+            )}
+          </div>
+
+          {downloadStatus.status === 'completed' && (
+            <button
+              onClick={downloadFile}
+              className="w-full px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center justify-center gap-3 shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105"
+            >
+              <FaDownload />
+              Download File
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setDownloadStatus(null);
+              setDownloadId(null);
+              if (pollInterval) {
+                clearInterval(pollInterval);
+                setPollInterval(null);
+              }
+            }}
+            className="w-full px-6 py-3 bg-gray-700 rounded-full hover:bg-gray-600 transition-all duration-300 font-semibold text-sm"
+          >
+            Start New Download
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

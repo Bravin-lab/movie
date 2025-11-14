@@ -123,8 +123,8 @@ export async function getUpcomingMovies(page: number = 1): Promise<MovieListResp
   return fetchFromTMDB<MovieListResponse>('movie/upcoming', { page: page.toString() });
 }
 
-export async function getMovieDetails(movieId: number): Promise<Movie & { credits: Credits; genres: Genre[]; videos: { results: { id: string; key: string; name: string; site: string; type: string }[] } }> {
-  return fetchFromTMDB<Movie & { credits: Credits; genres: Genre[]; videos: { results: { id: string; key: string; name: string; site: string; type: string }[] } }>('movie/' + movieId, { append_to_response: 'credits,videos' });
+export async function getMovieDetails(movieId: number): Promise<Movie & { credits: Credits; genres: Genre[]; videos: { results: { id: string; key: string; name: string; site: string; type: string }[] } } & { external_ids: { imdb_id: string | null } }> {
+  return fetchFromTMDB<Movie & { credits: Credits; genres: Genre[]; videos: { results: { id: string; key: string; name: string; site: string; type: string }[] } } & { external_ids: { imdb_id: string | null } }>('movie/' + movieId, { append_to_response: 'credits,videos,external_ids' });
 }
 
 export interface MovieReview {

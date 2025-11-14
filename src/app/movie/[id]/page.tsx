@@ -8,6 +8,7 @@ import { searchYouTubeTrailer } from "@/lib/youtube";
 
 import { FaPlay } from "react-icons/fa";
 import WatchlistFavoriteButtons from "@/components/WatchlistFavoriteButtons";
+import DownloadSection from "@/components/DownloadSection";
 import { useUser } from "@/lib/UserContext";
 
 interface MovieDetails {
@@ -25,6 +26,9 @@ interface MovieDetails {
   };
   poster_path: string | null;
   backdrop_path: string | null;
+  external_ids: {
+    imdb_id: string | null;
+  };
 };
 
 interface Props {
@@ -233,6 +237,13 @@ export default function MovieDetailsPage({ params }: Props) {
               )}
             </div>
           </div>
+
+          {/* Download Section */}
+          {movie.external_ids.imdb_id && (
+            <DownloadSection
+              imdbId={movie.external_ids.imdb_id}
+            />
+          )}
 
           {/* Trailer Section */}
           <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">

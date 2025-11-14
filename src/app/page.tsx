@@ -12,34 +12,52 @@ interface MovieBackdrop {
 }
 
 const FloatingParticles = () => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   const particles = Array.from({ length: 50 }, (_, i) => i);
 
   return (
     <>
-      {particles.map((particle) => (
-        <motion.div
-          key={particle}
-          className="absolute w-1 h-1 bg-white rounded-full"
-          initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
-            scale: Math.random() * 0.5 + 0.5,
-            opacity: Math.random() * 0.5 + 0.3,
-          }}
-          animate={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1920),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 1080),
-            scale: Math.random() * 0.5 + 0.5,
-            opacity: Math.random() * 0.5 + 0.3,
-          }}
-          transition={{
-            duration: Math.random() * 10 + 5,
-            repeat: Infinity,
-            repeatType: "reverse",
-            ease: "easeInOut",
-          }}
-        />
-      ))}
+      {particles.map((particle) => {
+        // Use deterministic values based on particle index to avoid hydration mismatch
+        const seed = particle * 0.1;
+        const x = (Math.sin(seed) * 0.5 + 0.5) * (typeof window !== 'undefined' ? window.innerWidth : 1920);
+        const y = (Math.cos(seed) * 0.5 + 0.5) * (typeof window !== 'undefined' ? window.innerHeight : 1080);
+        const scale = (Math.sin(seed * 2) * 0.25 + 0.75);
+        const opacity = (Math.cos(seed * 3) * 0.2 + 0.6);
+        const duration = (Math.sin(seed * 4) * 5 + 10);
+
+        return (
+          <motion.div
+            key={particle}
+            className="absolute w-1 h-1 bg-white rounded-full"
+            initial={{
+              x,
+              y,
+              scale,
+              opacity,
+            }}
+            animate={{
+              x: (Math.sin(seed + 1) * 0.5 + 0.5) * (typeof window !== 'undefined' ? window.innerWidth : 1920),
+              y: (Math.cos(seed + 1) * 0.5 + 0.5) * (typeof window !== 'undefined' ? window.innerHeight : 1080),
+              scale,
+              opacity,
+            }}
+            transition={{
+              duration,
+              repeat: Infinity,
+              repeatType: "reverse",
+              ease: "easeInOut",
+            }}
+          />
+        );
+      })}
     </>
   );
 };
