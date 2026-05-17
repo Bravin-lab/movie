@@ -59,7 +59,16 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, { status: response.status, headers });
   } catch (error) {
     console.error("Proxy error:", error);
-    return NextResponse.json({ error: "Proxy failed" }, { status: 500 });
+    return new NextResponse(buildFallbackPlayerHtml(url), {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "X-Frame-Options": "ALLOWALL",
+      },
+    });
   }
 }
 
@@ -238,6 +247,58 @@ function filterAdsFromHtml(html: string, strictMode: boolean = false): string {
 
   filteredHtml = filteredHtml.replace(/<\/body>/i, injectedScript + "</body>");
   return filteredHtml;
+}
+
+function buildFallbackPlayerHtml(targetUrl: string): string {
+  const safeUrl = JSON.stringify(targetUrl);
+
+  return `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video Player</title>
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: #000;
+        overflow: hidden;
+      }
+      .frame {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+        background: #000;
+      }
+      .notice {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        padding: 8px 12px;
+        border-radius: 9999px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="notice">Loading player fallback...</div>
+    <iframe
+      class="frame"
+      src=${safeUrl}
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+      allowfullscreen
+      referrerpolicy="no-referrer"
+    ></iframe>
+  </body>
+</html>`;
 }
 
 /* ================================

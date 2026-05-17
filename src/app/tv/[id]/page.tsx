@@ -111,11 +111,11 @@ export default function TVShowDetailsPage({ params }: Props) {
   }, [selectedSeason, tvShow]);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading TV show details...</div>;
+    return <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-gray-300">Loading TV show details...</div>;
   }
 
   if (!tvShow) {
-    return <div className="p-8 text-center text-red-500">TV show not found.</div>;
+    return <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-red-400">TV show not found.</div>;
   }
 
   const posterBaseUrl = "https://image.tmdb.org/t/p/w300";
@@ -127,7 +127,7 @@ export default function TVShowDetailsPage({ params }: Props) {
   const backdropUrl = tvShow.backdrop_path ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}` : null;
 
   return (
-    <main className="text-white min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <main className="relative min-h-screen w-full overflow-hidden text-white bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Hero Section with Backdrop */}
       <div
         className="relative min-h-screen bg-cover bg-center bg-no-repeat"

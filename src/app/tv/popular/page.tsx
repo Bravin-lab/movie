@@ -33,11 +33,16 @@ export default function PopularTVShowsPage() {
   const posterBaseUrl = "https://image.tmdb.org/t/p/w200";
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-400">Loading popular TV shows...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20"></div>
+        <div className="text-xl relative z-10">Loading popular TV shows...</div>
+      </div>
+    );
   }
 
   return (
-    <main className="p-10 max-w-screen-xl mx-auto">
+    <main className="min-h-screen w-full p-10 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white relative overflow-hidden">
       <h1 className="text-5xl font-bold mb-8">Popular TV Shows</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {tvShows.map((show) => (
