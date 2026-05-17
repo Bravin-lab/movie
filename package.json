@@ -12,7 +12,7 @@
     "@supabase/supabase-js": "^2.49.8",
     "framer-motion": "^12.10.5",
     "hls.js": "^1.6.13",
-    "next": "^15.3.5",
+    "next": "15.3.8",
     "nodemailer": "^7.0.5",
     "puppeteer": "^24.23.0",
     "puppeteer-extra": "^3.3.6",
