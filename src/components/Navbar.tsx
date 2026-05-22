@@ -87,6 +87,13 @@ export default function Navbar() {
             >
               Contact developer
             </Link>
+            <Link
+              href="/downloads"
+              className="px-3 py-1 rounded hover:bg-indigo-600 transition"
+              onClick={() => setIsOpen(false)}
+            >
+              Downloads
+            </Link>
           </div>
         </div>
       )}

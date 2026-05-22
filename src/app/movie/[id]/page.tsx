@@ -242,6 +242,8 @@ export default function MovieDetailsPage({ params }: Props) {
           {movie.external_ids.imdb_id && (
             <DownloadSection
               imdbId={movie.external_ids.imdb_id}
+              title={movie.title}
+              year={movie.release_date ? Number(movie.release_date.slice(0, 4)) : undefined}
             />
           )}
 
@@ -293,21 +295,6 @@ export default function MovieDetailsPage({ params }: Props) {
             )}
           </div>
 
-          {/* Streaming Section */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
-            <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Watch Now
-            </h2>
-            <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-              <iframe
-                src={`/api/proxy-iframe?url=${encodeURIComponent(`https://vidsrc.xyz/embed/movie?tmdb=${movie.id}`)}`}
-                title={`${movie.title} Streaming Player`}
-                className="w-full h-full border-0"
-                allowFullScreen
-                allow="autoplay; encrypted-media"
-              />
-            </div>
-          </div>
         </div>
       </div>
     </main>

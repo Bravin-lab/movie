@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMoviesByIMDB } from '@/lib/yts';
 
 export async function GET(request: NextRequest) {
+  // This route has been disabled as the app moved to a download-first model.
+  // Keep the file in place for reference, but return 410 to avoid accidental use.
+  return NextResponse.json({ error: 'This endpoint is disabled. Use the Download flow.' }, { status: 410 });
+
+  /*
   try {
     const { searchParams } = new URL(request.url);
     const imdbId = searchParams.get('imdb_id');
@@ -67,4 +72,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+  */
 }

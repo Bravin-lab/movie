@@ -8,6 +8,10 @@ import { NextRequest, NextResponse } from "next/server";
  *   /api/proxy-iframe?url=https://vidsrc.xyz/embed/movie?tmdb=1234&strict=true
  */
 export async function GET(request: NextRequest) {
+  // Proxy/iframe functionality is deprecated for the download-first app.
+  return NextResponse.json({ error: 'This endpoint has been disabled.' }, { status: 410 });
+
+  /*
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
   const strict = searchParams.get("strict") === "true"; // enable strict mode
@@ -15,7 +19,9 @@ export async function GET(request: NextRequest) {
   if (!url) {
     return NextResponse.json({ error: "URL parameter required" }, { status: 400 });
   }
+  */
 
+  /*
   try {
     const response = await fetch(url, {
       headers: {
@@ -61,6 +67,7 @@ export async function GET(request: NextRequest) {
     console.error("Proxy error:", error);
     return NextResponse.json({ error: "Proxy failed" }, { status: 500 });
   }
+  */
 }
 
 /* ================================

@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Movie Hub',
-  description: 'Your ultimate movie streaming platform',
+  description: 'Your ultimate movie download platform',
   icons: {
     icon: '/popcon.jpg',
   },

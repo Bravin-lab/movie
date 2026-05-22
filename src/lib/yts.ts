@@ -1,4 +1,16 @@
-const YTS_API_BASE = 'https://yts.mx/api/v2';
+const YTS_API_BASES = [
+  process.env.YTS_API_BASE,
+  'https://movies-api.accel.li/api/v2',
+  'https://yts.ag/api/v2',
+  'https://yts.rs/api/v2',
+  'https://yts.lt/api/v2',
+  'https://yts.am/api/v2',
+  'https://yts.mx/api/v2',
+].filter((base): base is string => Boolean(base));
+
+function buildYtsUrl(base: string, path: string): URL {
+  return new URL(`${base}${path}`);
+}
 
 export interface YTSMovie {
   id: number;
@@ -60,8 +72,37 @@ export interface YTSSearchResponse extends YTSResponse {
   };
 }
 
+async function fetchMoviesByQuery(query: string): Promise<YTSMovie[]> {
+  let lastError: unknown = null;
+
+  for (const base of YTS_API_BASES) {
+    const url = buildYtsUrl(base, '/list_movies.json');
+    url.searchParams.append('query_term', query);
+    url.searchParams.append('limit', '20');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const response = await fetch(url.toString(), { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`YTS API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.data?.movies || [];
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Failed to fetch YTS movies');
+}
+
 export async function searchMovies(query: string, page: number = 1, limit: number = 20): Promise<YTSSearchResponse> {
-  const url = new URL(`${YTS_API_BASE}/list_movies.json`);
+  const url = buildYtsUrl(YTS_API_BASES[0], '/list_movies.json');
   url.searchParams.append('query_term', query);
   url.searchParams.append('page', page.toString());
   url.searchParams.append('limit', limit.toString());
@@ -75,7 +116,7 @@ export async function searchMovies(query: string, page: number = 1, limit: numbe
 }
 
 export async function getMovieDetails(movieId: number): Promise<YTSMovie> {
-  const url = new URL(`${YTS_API_BASE}/movie_details.json`);
+  const url = buildYtsUrl(YTS_API_BASES[0], '/movie_details.json');
   url.searchParams.append('movie_id', movieId.toString());
 
   const response = await fetch(url.toString());
@@ -92,20 +133,62 @@ export async function getMovieDetails(movieId: number): Promise<YTSMovie> {
 }
 
 export async function getMoviesByIMDB(imdbId: string): Promise<YTSMovie[]> {
-  const url = new URL(`${YTS_API_BASE}/list_movies.json`);
-  url.searchParams.append('query_term', imdbId);
+  return fetchMoviesByQuery(imdbId);
+}
 
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    throw new Error(`YTS API error: ${response.status} ${response.statusText}`);
+export async function getMoviesByIMDBOrTitle(
+  imdbId: string,
+  title?: string,
+  year?: number
+): Promise<YTSMovie[]> {
+  const attempts: Array<Promise<YTSMovie[]>> = [];
+
+  if (imdbId) {
+    attempts.push(fetchMoviesByQuery(imdbId));
   }
 
-  const data = await response.json();
-  return data.data?.movies || [];
+  if (title) {
+    attempts.push(fetchMoviesByQuery(title));
+  }
+
+  let lastError: unknown = null;
+
+  for (const attempt of attempts) {
+    try {
+      const movies = await attempt;
+      if (movies.length === 0) {
+        continue;
+      }
+
+      if (imdbId) {
+        const exactImdbMatches = movies.filter((movie) => movie.imdb_code === imdbId);
+        if (exactImdbMatches.length > 0) {
+          return exactImdbMatches;
+        }
+      }
+
+      if (typeof year === 'number' && !Number.isNaN(year)) {
+        const yearMatches = movies.filter((movie) => movie.year === year);
+        if (yearMatches.length > 0) {
+          return yearMatches;
+        }
+      }
+
+      return movies;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError instanceof Error ? lastError : new Error('Failed to fetch YTS movies');
+  }
+
+  return [];
 }
 
 export async function getPopularMovies(page: number = 1, limit: number = 20): Promise<YTSSearchResponse> {
-  const url = new URL(`${YTS_API_BASE}/list_movies.json`);
+  const url = buildYtsUrl(YTS_API_BASES[0], '/list_movies.json');
   url.searchParams.append('sort_by', 'download_count');
   url.searchParams.append('order_by', 'desc');
   url.searchParams.append('page', page.toString());
@@ -120,7 +203,7 @@ export async function getPopularMovies(page: number = 1, limit: number = 20): Pr
 }
 
 export async function getLatestMovies(page: number = 1, limit: number = 20): Promise<YTSSearchResponse> {
-  const url = new URL(`${YTS_API_BASE}/list_movies.json`);
+  const url = buildYtsUrl(YTS_API_BASES[0], '/list_movies.json');
   url.searchParams.append('sort_by', 'date_added');
   url.searchParams.append('order_by', 'desc');
   url.searchParams.append('page', page.toString());
@@ -135,7 +218,7 @@ export async function getLatestMovies(page: number = 1, limit: number = 20): Pro
 }
 
 export async function getMoviesByGenre(genre: string, page: number = 1, limit: number = 20): Promise<YTSSearchResponse> {
-  const url = new URL(`${YTS_API_BASE}/list_movies.json`);
+  const url = buildYtsUrl(YTS_API_BASES[0], '/list_movies.json');
   url.searchParams.append('genre', genre);
   url.searchParams.append('page', page.toString());
   url.searchParams.append('limit', limit.toString());
@@ -149,7 +232,7 @@ export async function getMoviesByGenre(genre: string, page: number = 1, limit: n
 }
 
 export async function getMoviesByQuality(quality: string, page: number = 1, limit: number = 20): Promise<YTSSearchResponse> {
-  const url = new URL(`${YTS_API_BASE}/list_movies.json`);
+  const url = buildYtsUrl(YTS_API_BASES[0], '/list_movies.json');
   url.searchParams.append('quality', quality);
   url.searchParams.append('page', page.toString());
   url.searchParams.append('limit', limit.toString());

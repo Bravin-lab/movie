@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getTVShowDetails, getTVShowSeasonDetails, Episode } from "@/lib/tmdb";
+import { getTVShowDetails } from "@/lib/tmdb";
 import { searchYouTubeTrailer } from "@/lib/youtube";
 
 import { FaPlay } from "react-icons/fa";
@@ -35,24 +35,19 @@ interface Props {
 }
 
 export default function TVShowDetailsPage({ params }: Props) {
-  const unwrappedParams = React.use(params);
   const [tvShow, setTVShow] = useState<TVShowDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showStreamingPlayer, setShowStreamingPlayer] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
-
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const router = useRouter();
 
-  const [youtubeVideoId, setYoutubeVideoId] = React.useState<string | null>(null);
-  const [showYouTubePlayer, setShowYouTubePlayer] = React.useState(false);
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [showYouTubePlayer, setShowYouTubePlayer] = useState(false);
 
   const { user } = useUser();
 
   useEffect(() => {
     async function fetchDetails() {
       try {
+        const unwrappedParams = await params;
         const data = await getTVShowDetails(Number(unwrappedParams.id));
         const tvShowDetails: TVShowDetails = {
           ...data,
@@ -60,9 +55,6 @@ export default function TVShowDetailsPage({ params }: Props) {
           seasons: (data as unknown as TVShowDetails).seasons || [],
         };
         setTVShow(tvShowDetails);
-        if (tvShowDetails.seasons && tvShowDetails.seasons.length > 0) {
-          setSelectedSeason(tvShowDetails.seasons[0].season_number);
-        }
       } catch (error) {
         console.error("Failed to fetch TV show details", error);
       } finally {
@@ -70,7 +62,7 @@ export default function TVShowDetailsPage({ params }: Props) {
       }
     }
     fetchDetails();
-  }, [unwrappedParams.id]);
+  }, [params]);
 
   useEffect(() => {
     async function fetchYouTubeTrailer() {
@@ -91,25 +83,6 @@ export default function TVShowDetailsPage({ params }: Props) {
     setShowYouTubePlayer((prev) => !prev);
   }
 
-  useEffect(() => {
-    async function fetchEpisodes() {
-      if (selectedSeason !== null && tvShow) {
-        try {
-          const seasonData = await getTVShowSeasonDetails(tvShow.id, selectedSeason);
-          setEpisodes(seasonData.episodes || []);
-          if (seasonData.episodes && seasonData.episodes.length > 0) {
-            setSelectedEpisode(seasonData.episodes[0].episode_number);
-          }
-        } catch (error) {
-          console.error("Failed to fetch season episodes", error);
-          setEpisodes([]);
-          setSelectedEpisode(null);
-        }
-      }
-    }
-    fetchEpisodes();
-  }, [selectedSeason, tvShow]);
-
   if (loading) {
     return <div className="p-8 text-center text-gray-400 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 min-h-screen">Loading TV show details...</div>;
   }
@@ -119,10 +92,6 @@ export default function TVShowDetailsPage({ params }: Props) {
   }
 
   const posterBaseUrl = "https://image.tmdb.org/t/p/w300";
-
-  function toggleStreamingPlayer() {
-    setShowStreamingPlayer((prev) => !prev);
-  }
 
   const backdropUrl = tvShow.backdrop_path ? `https://image.tmdb.org/t/p/w1280${tvShow.backdrop_path}` : null;
 
@@ -204,42 +173,6 @@ export default function TVShowDetailsPage({ params }: Props) {
       {/* Content Section */}
       <div className="relative -mt-32 z-10 px-6 lg:px-10 pb-20">
         <div className="max-w-7xl mx-auto space-y-12">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            {tvShow.seasons && tvShow.seasons.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">Seasons</h2>
-                <select
-                  className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 mb-6"
-                  value={selectedSeason || ""}
-                  onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                >
-                  {tvShow.seasons.map((season) => (
-                    <option key={season.season_number} value={season.season_number} title={season.name}>
-                      {season.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {episodes.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">Episodes</h2>
-                <select
-                  className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                  value={selectedEpisode || ""}
-                  onChange={(e) => setSelectedEpisode(Number(e.target.value))}
-                >
-                  {episodes.map((episode) => (
-                    <option key={episode.id} value={episode.episode_number} title={episode.name}>
-                      Episode {episode.episode_number}: {episode.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
           {/* Main Content */}
           <div className="lg:col-span-2">
             <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -335,41 +268,6 @@ export default function TVShowDetailsPage({ params }: Props) {
                 <p className="text-gray-400 text-lg text-center py-8">No trailer available.</p>
               )}
             </div>
-
-            {selectedSeason !== null && selectedEpisode !== null && (
-              <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
-                <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Watch Now
-                </h2>
-                <button
-                  onClick={toggleStreamingPlayer}
-                  className="mb-6 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center gap-3 justify-center shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105"
-                >
-                  {showStreamingPlayer ? (
-                    <>
-                      <FaPlay className="animate-pulse" />
-                      Hide Streaming Player
-                    </>
-                  ) : (
-                    <>
-                      <FaPlay className="animate-pulse" />
-                      Play Episode
-                    </>
-                  )}
-                </button>
-                {showStreamingPlayer && (
-                  <div className="aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-                    <iframe
-                      src={`/api/proxy-iframe?url=${encodeURIComponent(`https://vidsrc.xyz/embed/tv?tmdb=${tvShow.id}&season=${selectedSeason}&episode=${selectedEpisode}&ds_lang=de`)}`}
-                      title={`Episode ${selectedEpisode} Player`}
-                      className="w-full h-full border-0"
-                      allowFullScreen
-                      allow="autoplay; encrypted-media"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

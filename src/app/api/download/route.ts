@@ -4,14 +4,15 @@ const TORRENT_SERVICE_URL = process.env.TORRENT_SERVICE_URL || 'http://localhost
 
 export async function POST(request: NextRequest) {
   try {
-    const { magnetUrl, title, quality } = await request.json();
+    const { magnetUrl, magnetUri, title, quality } = await request.json();
+    const torrentUri = magnetUri || magnetUrl;
 
-    if (!magnetUrl) {
+    if (!torrentUri) {
       return NextResponse.json({ error: 'Magnet URL is required' }, { status: 400 });
     }
 
     console.log(`[INFO] Connecting to: ${TORRENT_SERVICE_URL}/api/download/start`);
-    console.log(`[INFO] Magnet URL: ${magnetUrl.substring(0, 50)}...`);
+    console.log(`[INFO] Magnet URL: ${torrentUri.substring(0, 50)}...`);
 
     // Increase timeout to 90 seconds for slow torrents
     const controller = new AbortController();
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          magnetUri: magnetUrl,
+          magnetUri: torrentUri,
           fileName: `${title} [${quality}].mp4`
         }),
         signal: controller.signal,

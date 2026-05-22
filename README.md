@@ -32,6 +32,10 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - TV show details page enhanced with season dropdown and episode dropdown for better navigation.
 - YouTube trailer integration and streaming player for episodes.
 
+## Environment
+
+Torrent lookups use `YTS_API_BASE` when it is set, and fall back through known YTS mirrors if the primary host is unavailable. The default local value in `.env` points at `https://movies-api.accel.li/api/v2`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

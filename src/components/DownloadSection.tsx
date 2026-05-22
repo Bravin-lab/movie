@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaDownload, FaCheck, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
-import { getMoviesByIMDB } from '@/lib/yts';
 
 export type DownloadSectionProps = {
   imdbId: string;
-  title?: string;  // added
-  year?: number;   // added
+  title?: string;
+  year?: number;
 }
 
 interface YTSMovie {
@@ -66,7 +65,7 @@ interface DownloadStatus {
 }
 
 export default function DownloadSection(props: DownloadSectionProps) {
-  const { imdbId } = props;
+  const { imdbId, title, year } = props;
   const [selectedQuality, setSelectedQuality] = useState('1080p');
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
   const [isStartingDownload, setIsStartingDownload] = useState(false);
@@ -74,6 +73,24 @@ export default function DownloadSection(props: DownloadSectionProps) {
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const [ytsMovies, setYtsMovies] = useState<YTSMovie[]>([]);
   const [loadingYTS, setLoadingYTS] = useState(false);
+  const [torrentError, setTorrentError] = useState<string | null>(null);
+
+  const buildMagnetUri = (torrent: YTSTorrent, movieTitle: string) => {
+    const params = new URLSearchParams();
+    params.set('xt', `urn:btih:${torrent.hash}`);
+    params.set('dn', movieTitle);
+
+    const trackers = [
+      'udp://tracker.opentrackr.org:1337/announce',
+      'udp://open.stealth.si:80/announce',
+      'udp://tracker.torrent.eu.org:451/announce',
+      'udp://exodus.desync.com:6969/announce',
+    ];
+
+    trackers.forEach((tracker) => params.append('tr', tracker));
+
+    return `magnet:?${params.toString()}`;
+  };
 
 
 
@@ -81,17 +98,32 @@ export default function DownloadSection(props: DownloadSectionProps) {
     const fetchYTSMovies = async () => {
       if (!imdbId) return;
       setLoadingYTS(true);
+      setTorrentError(null);
       try {
-        const movies = await getMoviesByIMDB(imdbId);
-        setYtsMovies(movies);
+        const searchParams = new URLSearchParams({ imdbId });
+        if (title) searchParams.set('title', title);
+        if (typeof year === 'number' && !Number.isNaN(year)) {
+          searchParams.set('year', String(year));
+        }
+
+        const response = await fetch(`/api/yts/torrents?${searchParams.toString()}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data?.error || 'Failed to fetch torrent information');
+        }
+
+        setYtsMovies(data.movies || []);
       } catch (error) {
         console.error('Failed to fetch YTS movies:', error);
+        setTorrentError(error instanceof Error ? error.message : 'Failed to fetch torrent information');
+        setYtsMovies([]);
       } finally {
         setLoadingYTS(false);
       }
     };
     fetchYTSMovies();
-  }, [imdbId]);
+  }, [imdbId, title, year]);
 
   const startDownload = async () => {
     if (!imdbId || ytsMovies.length === 0) return;
@@ -112,7 +144,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          magnetUrl: torrent.url,
+          magnetUri: buildMagnetUri(torrent, movie.title),
           title: movie.title,
           quality: selectedQuality,
         }),
@@ -225,7 +257,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
   return (
     <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
       <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-        Download Movie
+        Download via Torrent
       </h2>
 
       {!downloadStatus && !downloadId && (
@@ -234,6 +266,10 @@ export default function DownloadSection(props: DownloadSectionProps) {
             <div className="text-center text-gray-400">
               <FaSpinner className="animate-spin inline mr-2" />
               Loading available torrents...
+            </div>
+          ) : torrentError ? (
+            <div className="text-center text-red-300">
+              {torrentError}
             </div>
           ) : ytsMovies.length > 0 ? (
             <>
