@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs-extra');
 const mime = require('mime-types');
+const parseTorrent = require('parse-torrent');
 const { generateId } = require('./utils');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -127,6 +128,13 @@ app.post('/api/download/start', async (req, res) => {
 
     if (!/^magnet:\?/i.test(torrentUri)) {
       return res.status(400).json({ error: 'Invalid magnet URI format' });
+    }
+
+    try {
+      parseTorrent(torrentUri);
+    } catch (parseError) {
+      console.error('Invalid torrent identifier:', parseError.message || parseError);
+      return res.status(400).json({ error: `Invalid torrent identifier: ${parseError.message || 'bad magnet'}` });
     }
 
     if (!client) {
