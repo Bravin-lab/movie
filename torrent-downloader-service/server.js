@@ -119,7 +119,14 @@ async function cleanupOldFiles() {
 app.post('/api/download/start', async (req, res) => {
   try {
     const { magnetUri, fileName } = req.body;
-    const torrentUri = typeof magnetUri === 'string' ? magnetUri.trim() : '';
+    const rawTorrentUri = typeof magnetUri === 'string' ? magnetUri.trim() : '';
+    const torrentUri = (() => {
+      try {
+        return decodeURIComponent(rawTorrentUri);
+      } catch {
+        return rawTorrentUri;
+      }
+    })();
 
     if (!torrentUri) {
       return res.status(400).json({ error: 'Magnet URI is required' });
@@ -144,7 +151,7 @@ app.post('/api/download/start', async (req, res) => {
     }
 
     // Check Telegram index first to avoid re-downloading (supports bot API and MTProto entries)
-    const telegramEntry = telegramIndex[torrentUri] || Object.values(telegramIndex).find(e => e.file_name === fileName);
+    const telegramEntry = telegramIndex[torrentUri] || telegramIndex[rawTorrentUri] || Object.values(telegramIndex).find(e => e.file_name === fileName);
     if (telegramEntry) {
       const downloadId = generateId();
 
