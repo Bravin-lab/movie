@@ -45,10 +45,8 @@ export async function GET(req: Request, context: unknown) {
 
     const contentType =
       upstream.headers.get('content-type') || 'application/octet-stream';
-    const upstreamDisposition = upstream.headers.get('content-disposition');
-    const contentDisposition =
-      upstreamDisposition ||
-      `attachment; filename="${name || `movie-${downloadId}.mp4`}"`;
+    // Force download behavior: always return attachment so browsers download files
+    const contentDisposition = `attachment; filename="${name || `movie-${downloadId}.mp4`}"`;
     const contentLength = upstream.headers.get('content-length') || undefined;
     const acceptRanges =
       upstream.headers.get('accept-ranges') || (range ? 'bytes' : undefined);

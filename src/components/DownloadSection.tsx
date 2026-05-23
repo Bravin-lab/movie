@@ -92,6 +92,20 @@ export default function DownloadSection(props: DownloadSectionProps) {
     return `magnet:?${params.toString()}`;
   };
 
+  const getAvailableTorrents = (movie: YTSMovie) => {
+    const torrentsByQuality = new Map<string, YTSTorrent>();
+
+    for (const torrent of movie.torrents) {
+      const current = torrentsByQuality.get(torrent.quality);
+
+      if (!current || torrent.seeds > current.seeds) {
+        torrentsByQuality.set(torrent.quality, torrent);
+      }
+    }
+
+    return Array.from(torrentsByQuality.values()).sort((left, right) => right.seeds - left.seeds);
+  };
+
 
 
   useEffect(() => {
@@ -132,7 +146,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
     try {
       // Find the torrent with the selected quality
       const movie = ytsMovies[0]; // Assuming first movie is the best match
-      const torrent = movie.torrents.find(t => t.quality === selectedQuality);
+      const torrent = getAvailableTorrents(movie).find(t => t.quality === selectedQuality);
 
       if (!torrent) {
         throw new Error(`No ${selectedQuality} torrent available`);
@@ -282,8 +296,8 @@ export default function DownloadSection(props: DownloadSectionProps) {
                   onChange={(e) => setSelectedQuality(e.target.value)}
                   className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 >
-                  {ytsMovies[0].torrents.map((torrent) => (
-                    <option key={torrent.quality} value={torrent.quality}>
+                  {getAvailableTorrents(ytsMovies[0]).map((torrent) => (
+                    <option key={`${torrent.quality}-${torrent.hash}`} value={torrent.quality}>
                       {torrent.quality} ({torrent.size}) - Seeds: {torrent.seeds}
                     </option>
                   ))}
