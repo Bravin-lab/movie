@@ -3,7 +3,6 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs-extra');
 const mime = require('mime-types');
-const parseTorrent = require('parse-torrent');
 const { generateId } = require('./utils');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -131,7 +130,10 @@ app.post('/api/download/start', async (req, res) => {
     }
 
     try {
-      parseTorrent(torrentUri);
+      const magnetMatch = torrentUri.match(/xt=urn:btih:([a-zA-Z0-9]{32,40})/i);
+      if (!magnetMatch) {
+        throw new Error('Missing btih info hash');
+      }
     } catch (parseError) {
       console.error('Invalid torrent identifier:', parseError.message || parseError);
       return res.status(400).json({ error: `Invalid torrent identifier: ${parseError.message || 'bad magnet'}` });
