@@ -119,9 +119,14 @@ async function cleanupOldFiles() {
 app.post('/api/download/start', async (req, res) => {
   try {
     const { magnetUri, fileName } = req.body;
+    const torrentUri = typeof magnetUri === 'string' ? magnetUri.trim() : '';
 
-    if (!magnetUri) {
+    if (!torrentUri) {
       return res.status(400).json({ error: 'Magnet URI is required' });
+    }
+
+    if (!/^magnet:\?/i.test(torrentUri)) {
+      return res.status(400).json({ error: 'Invalid magnet URI format' });
     }
 
     if (!client) {
@@ -129,7 +134,7 @@ app.post('/api/download/start', async (req, res) => {
     }
 
     // Check Telegram index first to avoid re-downloading (supports bot API and MTProto entries)
-    const telegramEntry = telegramIndex[magnetUri] || Object.values(telegramIndex).find(e => e.file_name === fileName);
+    const telegramEntry = telegramIndex[torrentUri] || Object.values(telegramIndex).find(e => e.file_name === fileName);
     if (telegramEntry) {
       const downloadId = generateId();
 
@@ -163,12 +168,13 @@ app.post('/api/download/start', async (req, res) => {
     const downloadId = generateId();
 
     // Add torrent
-    client.add(magnetUri, { path: DOWNLOAD_DIR }, (torrent) => {
+    try {
+      client.add(torrentUri, { path: DOWNLOAD_DIR }, (torrent) => {
       console.log(`Started downloading: ${torrent.name}`);
 
       const downloadInfo = {
         id: downloadId,
-        magnetUri,
+        magnetUri: torrentUri,
         torrent: torrent,
         fileName: fileName || torrent.name,
         startTime: Date.now(),
@@ -199,7 +205,7 @@ app.post('/api/download/start', async (req, res) => {
             }
 
             const filePath = path.join(DOWNLOAD_DIR, targetFile.path);
-            const caption = magnetUri || torrent.infoHash || torrent.name;
+            const caption = torrentUri || torrent.infoHash || torrent.name;
 
             let uploadSucceeded = false;
 
@@ -207,7 +213,7 @@ app.post('/api/download/start', async (req, res) => {
               // First attempt Bot API upload (for smaller files)
               try {
                 const fileId = await uploadFileToTelegram(filePath, caption);
-                telegramIndex[magnetUri || torrent.infoHash || torrent.name] = {
+                telegramIndex[torrentUri || torrent.infoHash || torrent.name] = {
                   source: 'bot',
                   file_id: fileId,
                   file_name: targetFile.name,
@@ -226,7 +232,7 @@ app.post('/api/download/start', async (req, res) => {
               if (mtproto && mtproto.mtprotoEnabled && process.env.TELEGRAM_MT_CHANNEL) {
                 try {
                   const mtRes = await mtproto.uploadFileToChannel(filePath, process.env.TELEGRAM_MT_CHANNEL, caption);
-                  telegramIndex[magnetUri || torrent.infoHash || torrent.name] = Object.assign({}, mtRes, {
+                  telegramIndex[torrentUri || torrent.infoHash || torrent.name] = Object.assign({}, mtRes, {
                     source: 'mtproto',
                     uploadedAt: Date.now()
                   });
@@ -283,7 +289,11 @@ app.post('/api/download/start', async (req, res) => {
         message: 'Download started',
         torrentName: torrent.name
       });
-    });
+      });
+    } catch (addError) {
+      console.error('Failed to add torrent:', addError);
+      return res.status(400).json({ error: `Failed to add torrent: ${addError.message || String(addError)}` });
+    }
 
   } catch (error) {
     console.error('Download start error:', error);
