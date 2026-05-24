@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -223,44 +224,24 @@ app.post('/api/download/start', async (req, res) => {
 
             const filePath = path.join(DOWNLOAD_DIR, targetFile.path);
             const caption = torrentUri || torrent.infoHash || torrent.name;
+            const canUseMtProto = Boolean(mtproto && mtproto.mtprotoEnabled && process.env.TELEGRAM_MT_CHANNEL);
 
             let uploadSucceeded = false;
 
             try {
-              // First attempt Bot API upload (for smaller files)
-              try {
-                const fileId = await uploadFileToTelegram(filePath, caption);
-                telegramIndex[torrentUri || torrent.infoHash || torrent.name] = {
-                  source: 'bot',
-                  file_id: fileId,
-                  file_name: targetFile.name,
-                  size: targetFile.length,
+              if (canUseMtProto) {
+                const mtRes = await mtproto.uploadFileToChannel(filePath, process.env.TELEGRAM_MT_CHANNEL, caption);
+                telegramIndex[torrentUri || torrent.infoHash || torrent.name] = Object.assign({}, mtRes, {
+                  source: 'mtproto',
                   uploadedAt: Date.now()
-                };
+                });
                 saveTelegramIndex(telegramIndex);
-                downloadInfo.telegramFileId = fileId;
+                downloadInfo.mtprotoPeer = mtRes.peer;
+                downloadInfo.mtprotoMessageId = mtRes.messageId;
                 uploadSucceeded = true;
-                console.log('Uploaded to Telegram (bot), file_id:', fileId);
-              } catch (err) {
-                console.error('Telegram Bot API upload failed:', err.message || err);
-              }
-
-              // If MTProto is enabled, also try uploading to the MTProto channel (for larger files)
-              if (mtproto && mtproto.mtprotoEnabled && process.env.TELEGRAM_MT_CHANNEL) {
-                try {
-                  const mtRes = await mtproto.uploadFileToChannel(filePath, process.env.TELEGRAM_MT_CHANNEL, caption);
-                  telegramIndex[torrentUri || torrent.infoHash || torrent.name] = Object.assign({}, mtRes, {
-                    source: 'mtproto',
-                    uploadedAt: Date.now()
-                  });
-                  saveTelegramIndex(telegramIndex);
-                  downloadInfo.mtprotoPeer = mtRes.peer;
-                  downloadInfo.mtprotoMessageId = mtRes.messageId;
-                  uploadSucceeded = true;
-                  console.log('Uploaded to Telegram (MTProto), messageId:', mtRes.messageId);
-                } catch (err) {
-                  console.error('MTProto upload failed:', err.message || err);
-                }
+                console.log('Uploaded to Telegram (MTProto), messageId:', mtRes.messageId);
+              } else {
+                console.log('MTProto upload skipped: TELEGRAM_MTPROTO or TELEGRAM_MT_CHANNEL not configured');
               }
             } catch (error) {
               console.error('Post-download processing error:', error);

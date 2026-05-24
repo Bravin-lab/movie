@@ -9,21 +9,27 @@
     "cleanup": "node cleanup.js"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "webtorrent": "^2.8.5",
-    "cors": "^2.8.6",
-    "fs-extra": "^11.3.5",
-    "mime-types": "^3.0.2",
     "axios": "^1.4.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "form-data": "^4.0.0",
-    "telegram": "^2.5.0",
+    "fs-extra": "^11.3.5",
     "input": "^1.0.1",
-    "qrcode-terminal": "^0.12.0"
+    "mime-types": "^3.0.2",
+    "qrcode-terminal": "^0.12.0",
+    "telegram": "^2.5.0",
+    "webtorrent": "^2.8.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
   },
-  "keywords": ["torrent", "download", "vps", "streaming"],
+  "keywords": [
+    "torrent",
+    "download",
+    "vps",
+    "streaming"
+  ],
   "author": "",
   "license": "ISC"
 }
