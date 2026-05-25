@@ -5,8 +5,6 @@ const path = require('path');
 const fs = require('fs-extra');
 const mime = require('mime-types');
 const { generateId } = require('./utils');
-const axios = require('axios');
-const FormData = require('form-data');
 const mtproto = require('./telegram_mtproto');
 
 const app = express();
@@ -27,8 +25,6 @@ let client;
 const activeDownloads = new Map();
 
 // Telegram integration
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // channel or chat id
 const TELEGRAM_INDEX_FILE = path.join(DOWNLOAD_DIR, 'telegram_index.json');
 // How long to keep local file after a successful upload (default: 1 hour)
 const LOCAL_DELETE_AFTER_UPLOAD_MS = process.env.LOCAL_DELETE_AFTER_UPLOAD_MS ? Number(process.env.LOCAL_DELETE_AFTER_UPLOAD_MS) : 60 * 60 * 1000;
@@ -57,13 +53,64 @@ function extractMagnetParts(torrentUri) {
   }
 }
 
-function findTelegramEntry({ torrentUri, rawTorrentUri, fileName }) {
-  const { infoHash, displayName } = extractMagnetParts(torrentUri);
-  const candidates = [torrentUri, rawTorrentUri, infoHash, displayName, fileName]
-    .filter(Boolean)
-    .map(normalizeLookupText);
+function getTelegramIndexKey(entry) {
+  if (!entry || typeof entry !== 'object') {
+    return null;
+  }
 
-  const candidateSet = new Set(candidates);
+  const infoHash = normalizeLookupText(entry.infoHash || extractMagnetParts(entry.torrentUri).infoHash);
+  if (infoHash) {
+    return infoHash;
+  }
+
+  const fallbackName = normalizeLookupText(
+    entry.normalizedFileName || entry.file_name || entry.fileName || entry.requestedFileName || entry.displayName
+  );
+
+  return fallbackName || null;
+}
+
+function normalizeTelegramIndex(index) {
+  const normalizedIndex = {};
+
+  for (const [legacyKey, entry] of Object.entries(index || {})) {
+    const normalizedEntry = {
+      ...(entry || {}),
+      infoHash: entry?.infoHash || extractMagnetParts(entry?.torrentUri).infoHash,
+      file_name: entry?.file_name || entry?.fileName || entry?.requestedFileName,
+      normalizedFileName: normalizeLookupText(
+        entry?.normalizedFileName || entry?.file_name || entry?.fileName || entry?.requestedFileName || entry?.displayName
+      ),
+    };
+
+    const key = getTelegramIndexKey(normalizedEntry) || normalizeLookupText(legacyKey);
+    if (!key) {
+      continue;
+    }
+
+    normalizedIndex[key] = normalizedEntry;
+  }
+
+  return normalizedIndex;
+}
+
+function getRequestTelegramIndexKey({ torrentUri, rawTorrentUri, fileName }) {
+  const { infoHash, displayName } = extractMagnetParts(torrentUri || rawTorrentUri);
+  return normalizeLookupText(infoHash || displayName || fileName || torrentUri || rawTorrentUri);
+}
+
+function findTelegramEntry({ torrentUri, rawTorrentUri, fileName }) {
+  const directKey = getRequestTelegramIndexKey({ torrentUri, rawTorrentUri, fileName });
+  if (directKey && telegramIndex[directKey]) {
+    return telegramIndex[directKey];
+  }
+
+  const { infoHash, displayName } = extractMagnetParts(torrentUri);
+  const candidateSet = new Set(
+    [torrentUri, rawTorrentUri, infoHash, displayName, fileName]
+      .filter(Boolean)
+      .map(normalizeLookupText)
+  );
 
   for (const [key, entry] of Object.entries(telegramIndex)) {
     const entryValues = [
@@ -106,42 +153,7 @@ function saveTelegramIndex(index) {
   }
 }
 
-const telegramIndex = loadTelegramIndex();
-
-async function uploadFileToTelegram(filePath, caption) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    throw new Error('Telegram bot token or chat id not configured');
-  }
-
-  const form = new FormData();
-  form.append('chat_id', TELEGRAM_CHAT_ID);
-  form.append('document', fs.createReadStream(filePath));
-  if (caption) form.append('caption', caption);
-
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`;
-
-  const resp = await axios.post(url, form, {
-    headers: form.getHeaders(),
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity
-  });
-
-  if (resp.data && resp.data.ok && resp.data.result && resp.data.result.document) {
-    return resp.data.result.document.file_id;
-  }
-
-  throw new Error('Telegram upload failed');
-}
-
-async function getTelegramFileUrl(fileId) {
-  if (!TELEGRAM_BOT_TOKEN) throw new Error('Telegram bot token not configured');
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
-  const resp = await axios.get(url);
-  if (resp.data && resp.data.ok && resp.data.result && resp.data.result.file_path) {
-    return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${resp.data.result.file_path}`;
-  }
-  throw new Error('Failed to get telegram file URL');
-}
+const telegramIndex = normalizeTelegramIndex(loadTelegramIndex());
 
 // Middleware
 app.use(cors());
@@ -206,7 +218,12 @@ app.post('/api/download/start', async (req, res) => {
     }
 
     // Check Telegram index first to avoid re-downloading (supports bot API and MTProto entries)
-    const telegramEntry = telegramIndex[torrentUri] || telegramIndex[rawTorrentUri] || findTelegramEntry({ torrentUri, rawTorrentUri, fileName });
+    const requestKey = getRequestTelegramIndexKey({ torrentUri, rawTorrentUri, fileName });
+    const telegramEntry =
+      (requestKey && telegramIndex[requestKey]) ||
+      telegramIndex[torrentUri] ||
+      telegramIndex[rawTorrentUri] ||
+      findTelegramEntry({ torrentUri, rawTorrentUri, fileName });
     if (telegramEntry) {
       const downloadId = generateId();
 
@@ -223,18 +240,6 @@ app.post('/api/download/start', async (req, res) => {
         };
         activeDownloads.set(downloadId, downloadInfo);
         return res.json({ downloadId, message: 'File available on Telegram (MTProto), fetched metadata', source: 'mtproto' });
-      } else {
-        const downloadInfo = {
-          id: downloadId,
-          source: 'telegram',
-          telegramFileId: telegramEntry.file_id,
-          fileName: telegramEntry.file_name || fileName,
-          size: telegramEntry.size,
-          startTime: Date.now(),
-          status: 'completed'
-        };
-        activeDownloads.set(downloadId, downloadInfo);
-        return res.json({ downloadId, message: 'File available on Telegram (Bot API), fetched metadata', source: 'telegram' });
       }
     }
 
@@ -290,7 +295,8 @@ app.post('/api/download/start', async (req, res) => {
             try {
               if (canUseMtProto) {
                 const mtRes = await mtproto.uploadFileToChannel(filePath, process.env.TELEGRAM_MT_CHANNEL, caption);
-                telegramIndex[torrentUri || torrent.infoHash || torrent.name] = Object.assign({}, mtRes, {
+                const telegramKey = normalizeLookupText(torrent.infoHash || extractMagnetParts(torrentUri).infoHash || torrent.name);
+                telegramIndex[telegramKey] = Object.assign({}, mtRes, {
                   source: 'mtproto',
                   torrentUri,
                   infoHash: torrent.infoHash,
@@ -450,31 +456,6 @@ app.get('/api/download/file/:downloadId', async (req, res) => {
       return;
     } catch (err) {
       console.error('Failed to stream from MTProto, falling back to local if available:', err.message || err);
-    }
-  }
-
-  if (download.source === 'telegram' && download.telegramFileId) {
-    try {
-      const tgUrl = await getTelegramFileUrl(download.telegramFileId);
-      const tgResp = await axios.get(tgUrl, { responseType: 'stream' });
-
-      // Propagate headers where possible
-      res.setHeader('Content-Type', tgResp.headers['content-type'] || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `inline; filename="${download.fileName || 'file'}"`);
-      res.setHeader('Accept-Ranges', 'bytes');
-
-      tgResp.data.pipe(res);
-      tgResp.data.on('end', () => {
-        console.log(`Telegram file streamed for downloadId: ${downloadId}`);
-      });
-      tgResp.data.on('error', (err) => {
-        console.error('Telegram stream error:', err);
-        if (!res.headersSent) res.status(500).json({ error: 'Failed to stream file from Telegram' });
-      });
-      return;
-    } catch (err) {
-      console.error('Failed to stream from Telegram, falling back to local if available:', err.message || err);
-      // continue to attempt local streaming if torrent exists
     }
   }
 
