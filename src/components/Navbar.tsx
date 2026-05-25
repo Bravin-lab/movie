@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { FiMenu, FiX, FiLogIn, FiUserPlus, FiHome } from "react-icons/fi";
+import AnnouncementStrip from "@/components/AnnouncementStrip";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +27,7 @@ export default function Navbar() {
           {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
         </button>
       </div>
+      <AnnouncementStrip />
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 shadow-lg rounded-md z-50">
           <div className="flex flex-col space-y-2 p-4">

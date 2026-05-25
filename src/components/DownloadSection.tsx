@@ -64,9 +64,21 @@ interface DownloadStatus {
   error?: string;
 }
 
+const MAX_ALLOWED_QUALITY = 720;
+
+const parseQualityValue = (quality: string) => {
+  const match = quality.match(/\d+/);
+  return match ? Number.parseInt(match[0], 10) : Number.NaN;
+};
+
+const isAllowedQuality = (quality: string) => {
+  const qualityValue = parseQualityValue(quality);
+  return Number.isFinite(qualityValue) && qualityValue <= MAX_ALLOWED_QUALITY;
+};
+
 export default function DownloadSection(props: DownloadSectionProps) {
   const { imdbId, title, year } = props;
-  const [selectedQuality, setSelectedQuality] = useState('1080p');
+  const [selectedQuality, setSelectedQuality] = useState('720p');
   const [downloadStatus, setDownloadStatus] = useState<DownloadStatus | null>(null);
   const [isStartingDownload, setIsStartingDownload] = useState(false);
   const [downloadId, setDownloadId] = useState<string | null>(null);
@@ -106,6 +118,17 @@ export default function DownloadSection(props: DownloadSectionProps) {
     return Array.from(torrentsByQuality.values()).sort((left, right) => right.seeds - left.seeds);
   };
 
+  const getAllowedTorrents = (movie: YTSMovie) => {
+    return getAvailableTorrents(movie).filter((torrent) => isAllowedQuality(torrent.quality));
+  };
+
+  const getDefaultQuality = (movie: YTSMovie) => {
+    const allowedTorrents = getAllowedTorrents(movie);
+    const preferredTorrent = allowedTorrents.find((torrent) => parseQualityValue(torrent.quality) === MAX_ALLOWED_QUALITY);
+
+    return preferredTorrent?.quality || allowedTorrents[0]?.quality || '720p';
+  };
+
 
 
   useEffect(() => {
@@ -139,11 +162,23 @@ export default function DownloadSection(props: DownloadSectionProps) {
     fetchYTSMovies();
   }, [imdbId, title, year]);
 
+  useEffect(() => {
+    if (ytsMovies.length === 0) return;
+
+    setSelectedQuality(getDefaultQuality(ytsMovies[0]));
+  }, [ytsMovies]);
+
   const startDownload = async () => {
     if (!imdbId || ytsMovies.length === 0) return;
 
     setIsStartingDownload(true);
     try {
+      if (!isAllowedQuality(selectedQuality)) {
+        const message = 'Only 720p and below are allowed by the developer due to server load.';
+        setTorrentError(message);
+        throw new Error(message);
+      }
+
       // Find the torrent with the selected quality
       const movie = ytsMovies[0]; // Assuming first movie is the best match
       const torrent = getAvailableTorrents(movie).find(t => t.quality === selectedQuality);
@@ -271,7 +306,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
   return (
     <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
       <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-        Download via Torrent
+        Download movie
       </h2>
 
       {!downloadStatus && !downloadId && (
@@ -293,15 +328,21 @@ export default function DownloadSection(props: DownloadSectionProps) {
                 </label>
                 <select
                   value={selectedQuality}
-                  onChange={(e) => setSelectedQuality(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedQuality(e.target.value);
+                    setTorrentError(null);
+                  }}
                   className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
                 >
-                  {getAvailableTorrents(ytsMovies[0]).map((torrent) => (
+                  {getAllowedTorrents(ytsMovies[0]).map((torrent) => (
                     <option key={`${torrent.quality}-${torrent.hash}`} value={torrent.quality}>
                       {torrent.quality} ({torrent.size}) - Seeds: {torrent.seeds}
                     </option>
                   ))}
                 </select>
+                <p className="mt-2 text-sm text-amber-300">
+                  720p and below only. Higher qualities are disabled to avoid overloading the server.
+                </p>
               </div>
 
               <button
@@ -324,7 +365,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
             </>
           ) : (
             <div className="text-center text-gray-400">
-              No torrents available for this movie.
+              No torrents available within the allowed 720p limit for this movie.
             </div>
           )}
         </div>

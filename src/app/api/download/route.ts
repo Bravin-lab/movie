@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const TORRENT_SERVICE_URL = process.env.TORRENT_SERVICE_URL || 'http://localhost:3001';
+const MAX_ALLOWED_QUALITY = 720;
 
 export async function POST(request: NextRequest) {
   try {
     const { magnetUrl, magnetUri, title, quality } = await request.json();
     const torrentUri = magnetUri || magnetUrl;
+
+    const qualityValue = Number.parseInt(quality ?? '', 10);
+    if (Number.isFinite(qualityValue) && qualityValue > MAX_ALLOWED_QUALITY) {
+      return NextResponse.json(
+        { error: 'Only 720p and below are allowed by the developer due to server load.' },
+        { status: 400 }
+      );
+    }
 
     if (!torrentUri) {
       return NextResponse.json({ error: 'Magnet URL is required' }, { status: 400 });

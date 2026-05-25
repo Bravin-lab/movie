@@ -41,6 +41,24 @@
   animation: textFlicker 3s linear infinite;
 }
 
+@keyframes marqueeLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marqueeLeft 28s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;

@@ -57,7 +57,8 @@ export default function TrendingPage() {
   }
 
   return (
-    <main className="p-10 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen max-w-screen-xl mx-auto rounded-lg shadow-xl relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <main className="p-10 text-white max-w-screen-xl mx-auto rounded-lg shadow-xl relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20"></div>
       <motion.div
         className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
@@ -114,5 +115,6 @@ export default function TrendingPage() {
         ))}
       </div>
     </main>
+    </div>
   );
 }

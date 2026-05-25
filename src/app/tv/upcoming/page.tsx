@@ -37,6 +37,7 @@ export default function UpcomingTVShowsPage() {
   }
 
   return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
     <main className="p-10 max-w-screen-xl mx-auto">
       <h1 className="text-5xl font-bold mb-8">Upcoming TV Shows</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -58,11 +59,12 @@ export default function UpcomingTVShowsPage() {
                 </div>
               )}
               <h2 className="mt-2 text-lg font-semibold truncate px-2">{show.name}</h2>
-              <p className="text-sm text-gray-500 px-2">First Air Date: {show.first_air_date || "N/A"}</p>
+              <p className="text-sm text-gray-400 px-2">First Air Date: {show.first_air_date || "N/A"}</p>
             </a>
           </Link>
         ))}
       </div>
     </main>
+    </div>
   );
 }
