@@ -126,7 +126,7 @@ export default function Footer() {
 
       <div className="relative mt-16 border-t border-white/10 pt-8 text-center">
         <p className="text-xs font-light text-gray-400">
-          Copyright &copy; 2025 Techlords. Created and maintained by{" "}
+          Copyright &copy; 2026 Techlords. Created and maintained by{" "}
           <span className="bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent font-semibold">
             Bravin.
           </span>
