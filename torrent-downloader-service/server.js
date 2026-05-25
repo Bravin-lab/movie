@@ -78,6 +78,8 @@ function normalizeTelegramIndex(index) {
       ...(entry || {}),
       infoHash: entry?.infoHash || extractMagnetParts(entry?.torrentUri).infoHash,
       file_name: entry?.file_name || entry?.fileName || entry?.requestedFileName,
+      peer: entry?.peer || entry?.mtprotoPeer,
+      message_id: entry?.message_id || entry?.messageId || entry?.mtprotoMessageId,
       normalizedFileName: normalizeLookupText(
         entry?.normalizedFileName || entry?.file_name || entry?.fileName || entry?.requestedFileName || entry?.displayName
       ),
@@ -231,8 +233,8 @@ app.post('/api/download/start', async (req, res) => {
         const downloadInfo = {
           id: downloadId,
           source: 'mtproto',
-          mtprotoPeer: telegramEntry.peer,
-          mtprotoMessageId: telegramEntry.message_id,
+          mtprotoPeer: telegramEntry.peer || telegramEntry.mtprotoPeer,
+          mtprotoMessageId: telegramEntry.message_id || telegramEntry.messageId || telegramEntry.mtprotoMessageId,
           fileName: telegramEntry.file_name || fileName,
           size: telegramEntry.size,
           startTime: Date.now(),
