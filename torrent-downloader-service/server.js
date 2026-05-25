@@ -101,6 +101,46 @@ function getRequestTelegramIndexKey({ torrentUri, rawTorrentUri, fileName }) {
   return normalizeLookupText(infoHash || displayName || fileName || torrentUri || rawTorrentUri);
 }
 
+function getMtprotoCachePath(peer, messageId, fileName) {
+  const localName = `${peer}_${messageId}_${fileName}`.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return path.join(DOWNLOAD_DIR, localName);
+}
+
+async function cacheMtprotoMedia(downloadInfo, telegramKey, telegramEntry) {
+  try {
+    const cachedPath = downloadInfo.cachedPath || telegramEntry.localPath || telegramEntry.cachedPath || getMtprotoCachePath(downloadInfo.mtprotoPeer, downloadInfo.mtprotoMessageId, downloadInfo.fileName);
+    downloadInfo.cachedPath = cachedPath;
+    downloadInfo.status = 'downloading';
+    downloadInfo.progress = 0;
+
+    if (!fs.existsSync(cachedPath)) {
+      await mtproto.downloadFileFromMessage(downloadInfo.mtprotoPeer, downloadInfo.mtprotoMessageId, cachedPath);
+    }
+
+    telegramIndex[telegramKey] = Object.assign({}, telegramEntry, {
+      source: 'mtproto',
+      peer: downloadInfo.mtprotoPeer,
+      message_id: downloadInfo.mtprotoMessageId,
+      localPath: cachedPath,
+      cachedPath,
+      file_name: downloadInfo.fileName,
+      normalizedFileName: normalizeLookupText(downloadInfo.fileName),
+      size: downloadInfo.size || telegramEntry.size,
+      uploadedAt: telegramEntry.uploadedAt || Date.now()
+    });
+    saveTelegramIndex(telegramIndex);
+
+    downloadInfo.status = 'completed';
+    downloadInfo.progress = 100;
+    downloadInfo.size = downloadInfo.size || telegramEntry.size;
+    console.log(`Cached MTProto media for downloadId: ${downloadInfo.id}`);
+  } catch (error) {
+    downloadInfo.status = 'error';
+    downloadInfo.error = error.message || String(error);
+    console.error('Failed to cache MTProto media:', error.message || error);
+  }
+}
+
 function findTelegramEntry({ torrentUri, rawTorrentUri, fileName }) {
   const directKey = getRequestTelegramIndexKey({ torrentUri, rawTorrentUri, fileName });
   if (directKey && telegramIndex[directKey]) {
@@ -230,19 +270,33 @@ app.post('/api/download/start', async (req, res) => {
       const downloadId = generateId();
 
       if (telegramEntry.source === 'mtproto') {
+        const mtprotoPeer = telegramEntry.peer || telegramEntry.mtprotoPeer;
+        const mtprotoMessageId = telegramEntry.message_id || telegramEntry.messageId || telegramEntry.mtprotoMessageId;
+        const fileNameToUse = telegramEntry.file_name || fileName;
+        const telegramKey = requestKey || normalizeLookupText(telegramEntry.infoHash || extractMagnetParts(torrentUri).infoHash || fileNameToUse || torrentUri);
+        const cachedPath = telegramEntry.localPath || telegramEntry.cachedPath || getMtprotoCachePath(mtprotoPeer, mtprotoMessageId, fileNameToUse);
+        const cacheExists = fs.existsSync(cachedPath);
+
         const downloadInfo = {
           id: downloadId,
           source: 'mtproto',
-          mtprotoPeer: telegramEntry.peer || telegramEntry.mtprotoPeer,
-          mtprotoMessageId: telegramEntry.message_id || telegramEntry.messageId || telegramEntry.mtprotoMessageId,
-          fileName: telegramEntry.file_name || fileName,
-          cachedPath: telegramEntry.localPath || telegramEntry.cachedPath,
+          mtprotoPeer,
+          mtprotoMessageId,
+          fileName: fileNameToUse,
+          cachedPath: cacheExists ? cachedPath : undefined,
           size: telegramEntry.size,
           startTime: Date.now(),
-          status: 'completed'
+          status: cacheExists ? 'completed' : 'downloading',
+          progress: cacheExists ? 100 : 0
         };
         activeDownloads.set(downloadId, downloadInfo);
-        return res.json({ downloadId, message: 'File available on Telegram (MTProto), fetched metadata', source: 'mtproto' });
+
+        if (!cacheExists) {
+          void cacheMtprotoMedia(downloadInfo, telegramKey, telegramEntry);
+          return res.json({ downloadId, message: 'File is being cached from Telegram (MTProto)', source: 'mtproto' });
+        }
+
+        return res.json({ downloadId, message: 'File available on Telegram (MTProto), using cached file', source: 'mtproto' });
       }
     }
 
