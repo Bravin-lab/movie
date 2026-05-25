@@ -236,6 +236,7 @@ app.post('/api/download/start', async (req, res) => {
           mtprotoPeer: telegramEntry.peer || telegramEntry.mtprotoPeer,
           mtprotoMessageId: telegramEntry.message_id || telegramEntry.messageId || telegramEntry.mtprotoMessageId,
           fileName: telegramEntry.file_name || fileName,
+          cachedPath: telegramEntry.localPath || telegramEntry.cachedPath,
           size: telegramEntry.size,
           startTime: Date.now(),
           status: 'completed'
@@ -304,11 +305,14 @@ app.post('/api/download/start', async (req, res) => {
                   infoHash: torrent.infoHash,
                   file_name: fileName || torrent.name,
                   normalizedFileName: normalizeLookupText(fileName || torrent.name),
+                  localPath: filePath,
+                  cachedPath: filePath,
                   uploadedAt: Date.now()
                 });
                 saveTelegramIndex(telegramIndex);
                 downloadInfo.mtprotoPeer = mtRes.peer;
                 downloadInfo.mtprotoMessageId = mtRes.messageId;
+                downloadInfo.cachedPath = filePath;
                 uploadSucceeded = true;
                 console.log('Uploaded to Telegram (MTProto), messageId:', mtRes.messageId);
               } else {
@@ -320,12 +324,12 @@ app.post('/api/download/start', async (req, res) => {
 
             // Schedule cleanup: if upload succeeded, remove local file after configured delay (default 1 hour),
             // otherwise keep for 24 hours as a fallback
-            const cleanupDelay = uploadSucceeded ? LOCAL_DELETE_AFTER_UPLOAD_MS : 24 * 60 * 60 * 1000;
+            const cleanupDelay = uploadSucceeded && !canUseMtProto ? LOCAL_DELETE_AFTER_UPLOAD_MS : 24 * 60 * 60 * 1000;
             setTimeout(async () => {
               try {
                 // remove local file to save space
                 try {
-                  if (fs.existsSync(filePath)) {
+                  if (!(uploadSucceeded && canUseMtProto) && fs.existsSync(filePath)) {
                     await fs.remove(filePath);
                     console.log(`Removed local file after upload: ${filePath}`);
                   }
@@ -410,11 +414,12 @@ app.get('/api/download/file/:downloadId', async (req, res) => {
   if (download.source === 'mtproto' && download.mtprotoPeer && download.mtprotoMessageId) {
     try {
       const localName = `${download.mtprotoPeer}_${download.mtprotoMessageId}_${download.fileName}`.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const localPath = path.join(DOWNLOAD_DIR, localName);
+      const localPath = download.cachedPath || path.join(DOWNLOAD_DIR, localName);
 
       if (!fs.existsSync(localPath)) {
         // download the media from telegram to local path
         await mtproto.downloadFileFromMessage(download.mtprotoPeer, download.mtprotoMessageId, localPath);
+        download.cachedPath = localPath;
       }
 
       const stats = await fs.stat(localPath);
