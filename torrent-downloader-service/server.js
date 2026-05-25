@@ -33,6 +33,60 @@ const TELEGRAM_INDEX_FILE = path.join(DOWNLOAD_DIR, 'telegram_index.json');
 // How long to keep local file after a successful upload (default: 1 hour)
 const LOCAL_DELETE_AFTER_UPLOAD_MS = process.env.LOCAL_DELETE_AFTER_UPLOAD_MS ? Number(process.env.LOCAL_DELETE_AFTER_UPLOAD_MS) : 60 * 60 * 1000;
 
+function normalizeLookupText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\.[a-z0-9]{2,4}$/i, '')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\([^\)]*\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractMagnetParts(torrentUri) {
+  try {
+    const query = String(torrentUri || '').split('?')[1] || '';
+    const params = new URLSearchParams(query);
+    return {
+      infoHash: (params.get('xt') || '').replace(/^urn:btih:/i, '').toLowerCase(),
+      displayName: params.get('dn') || '',
+    };
+  } catch {
+    return { infoHash: '', displayName: '' };
+  }
+}
+
+function findTelegramEntry({ torrentUri, rawTorrentUri, fileName }) {
+  const { infoHash, displayName } = extractMagnetParts(torrentUri);
+  const candidates = [torrentUri, rawTorrentUri, infoHash, displayName, fileName]
+    .filter(Boolean)
+    .map(normalizeLookupText);
+
+  const candidateSet = new Set(candidates);
+
+  for (const [key, entry] of Object.entries(telegramIndex)) {
+    const entryValues = [
+      key,
+      entry?.torrentUri,
+      entry?.infoHash,
+      entry?.file_name,
+      entry?.fileName,
+      entry?.requestedFileName,
+      entry?.normalizedFileName,
+      entry?.displayName,
+    ]
+      .filter(Boolean)
+      .map(normalizeLookupText);
+
+    if (entryValues.some((value) => candidateSet.has(value))) {
+      return entry;
+    }
+  }
+
+  return null;
+}
+
 function loadTelegramIndex() {
   try {
     if (fs.existsSync(TELEGRAM_INDEX_FILE)) {
@@ -152,7 +206,7 @@ app.post('/api/download/start', async (req, res) => {
     }
 
     // Check Telegram index first to avoid re-downloading (supports bot API and MTProto entries)
-    const telegramEntry = telegramIndex[torrentUri] || telegramIndex[rawTorrentUri] || Object.values(telegramIndex).find(e => e.file_name === fileName);
+    const telegramEntry = telegramIndex[torrentUri] || telegramIndex[rawTorrentUri] || findTelegramEntry({ torrentUri, rawTorrentUri, fileName });
     if (telegramEntry) {
       const downloadId = generateId();
 
@@ -233,6 +287,10 @@ app.post('/api/download/start', async (req, res) => {
                 const mtRes = await mtproto.uploadFileToChannel(filePath, process.env.TELEGRAM_MT_CHANNEL, caption);
                 telegramIndex[torrentUri || torrent.infoHash || torrent.name] = Object.assign({}, mtRes, {
                   source: 'mtproto',
+                  torrentUri,
+                  infoHash: torrent.infoHash,
+                  file_name: fileName || torrent.name,
+                  normalizedFileName: normalizeLookupText(fileName || torrent.name),
                   uploadedAt: Date.now()
                 });
                 saveTelegramIndex(telegramIndex);

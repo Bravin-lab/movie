@@ -3,9 +3,14 @@ export const runtime = 'nodejs';
 const TORRENT_SERVICE_URL =
   process.env.TORRENT_SERVICE_URL || 'http://localhost:3001';
 
-export async function GET(req: Request, context: unknown) {
-  const { params } = (context as { params?: { downloadId?: string } }) || {};
-  const downloadId = params?.downloadId;
+type RouteContext = {
+  params: Promise<{
+    downloadId?: string;
+  }>;
+};
+
+export async function GET(req: Request, context: RouteContext) {
+  const { downloadId } = await context.params;
 
   if (!downloadId) {
     return new Response(JSON.stringify({ error: 'Missing downloadId' }), {
