@@ -229,6 +229,7 @@ app.post('/api/download/start', async (req, res) => {
           source: 'telegram',
           telegramFileId: telegramEntry.file_id,
           fileName: telegramEntry.file_name || fileName,
+          size: telegramEntry.size,
           startTime: Date.now(),
           status: 'completed'
         };
@@ -269,6 +270,10 @@ app.post('/api/download/start', async (req, res) => {
         (async () => {
           try {
             // Find the largest file to upload
+            if (!torrent.files || torrent.files.length === 0) {
+              throw new Error('No files found in torrent');
+            }
+
             let targetFile = torrent.files[0];
             for (const file of torrent.files) {
               if (file.length > targetFile.length) {
@@ -367,6 +372,7 @@ app.get('/api/download/status/:downloadId', (req, res) => {
   }
 
   const torrent = download.torrent;
+  const size = torrent?.length || download.size || 0;
   res.json({
     id: downloadId,
     fileName: download.fileName,
@@ -374,9 +380,9 @@ app.get('/api/download/status/:downloadId', (req, res) => {
     progress: download.progress || 0,
     speed: download.speed || 0,
     peers: download.peers || 0,
-    size: torrent.length,
-    downloaded: torrent.downloaded,
-    timeRemaining: torrent.timeRemaining,
+    size,
+    downloaded: torrent?.downloaded || size,
+    timeRemaining: torrent?.timeRemaining || 0,
     error: download.error
   });
 });
@@ -477,6 +483,10 @@ app.get('/api/download/file/:downloadId', async (req, res) => {
   }
 
   // Find the largest file (usually the movie file)
+  if (!torrent.files || torrent.files.length === 0) {
+    return res.status(404).json({ error: 'No files available in local torrent' });
+  }
+
   let targetFile = torrent.files[0];
   for (const file of torrent.files) {
     if (file.length > targetFile.length) {
