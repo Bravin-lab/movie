@@ -2,12 +2,14 @@ const fs = require('fs-extra');
 const path = require('path');
 
 const DOWNLOAD_DIR = path.join(__dirname, 'downloads');
-const MAX_AGE_HOURS = 24; // Delete files older than 24 hours
+const MAX_AGE_HOURS = 12; // Delete files older than 12 hours
+const PROTECTED_FILES = new Set(['telegram_index.json']);
+const RUN_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function cleanup() {
-  try {
-    console.log('Starting cleanup process...');
+  console.log('Starting cleanup process...');
 
+  try {
     // Ensure downloads directory exists
     await fs.ensureDir(DOWNLOAD_DIR);
 
@@ -19,16 +21,35 @@ async function cleanup() {
     let totalSize = 0;
 
     for (const file of files) {
+      // Skip protected files
+      if (PROTECTED_FILES.has(file)) {
+        console.log(`Skipping protected file: ${file}`);
+        continue;
+      }
+
       const filePath = path.join(DOWNLOAD_DIR, file);
-      const stats = await fs.stat(filePath);
+      let stats;
+      try {
+        stats = await fs.stat(filePath);
+      } catch (err) {
+        console.warn(`Unable to stat ${file}:`, err.message || err);
+        continue;
+      }
+
+      // Only act on regular files (skip directories)
+      if (!stats.isFile()) continue;
 
       // Check if file is older than max age
       if (now - stats.mtime.getTime() > maxAge) {
         const size = stats.size;
-        await fs.remove(filePath);
-        deletedCount++;
-        totalSize += size;
-        console.log(`Deleted: ${file} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+        try {
+          await fs.remove(filePath);
+          deletedCount++;
+          totalSize += size;
+          console.log(`Deleted: ${file} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+        } catch (err) {
+          console.warn(`Failed to delete ${file}:`, err.message || err);
+        }
       }
     }
 
@@ -39,21 +60,30 @@ async function cleanup() {
     let currentSize = 0;
     for (const file of remainingFiles) {
       const filePath = path.join(DOWNLOAD_DIR, file);
-      const stats = await fs.stat(filePath);
-      currentSize += stats.size;
+      try {
+        const stats = await fs.stat(filePath);
+        if (stats.isFile()) currentSize += stats.size;
+      } catch (err) {
+        // ignore
+      }
     }
 
     console.log(`Remaining files: ${remainingFiles.length}, total size: ${(currentSize / 1024 / 1024).toFixed(2)} MB`);
 
   } catch (error) {
     console.error('Cleanup error:', error);
-    process.exit(1);
+    // Do not exit the process when running scheduled cleanups
   }
 }
 
-// Run cleanup if called directly
+// When run directly, execute once and schedule hourly runs
 if (require.main === module) {
-  cleanup();
+  cleanup().catch((err) => console.error('Initial cleanup error:', err));
+
+  // Schedule recurring cleanup every hour
+  setInterval(() => {
+    cleanup().catch((err) => console.error('Scheduled cleanup error:', err));
+  }, RUN_INTERVAL_MS);
 }
 
 module.exports = { cleanup };

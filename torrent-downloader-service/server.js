@@ -6,6 +6,7 @@ const fs = require('fs-extra');
 const mime = require('mime-types');
 const { generateId } = require('./utils');
 const mtproto = require('./telegram_mtproto');
+const { cleanup } = require('./cleanup');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -203,27 +204,6 @@ app.use(express.json());
 
 
 
-// Clean up old files (older than 24 hours)
-async function cleanupOldFiles() {
-  try {
-    const files = await fs.readdir(DOWNLOAD_DIR);
-    const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-
-    for (const file of files) {
-      const filePath = path.join(DOWNLOAD_DIR, file);
-      const stats = await fs.stat(filePath);
-
-      if (now - stats.mtime.getTime() > maxAge) {
-        await fs.remove(filePath);
-        console.log(`Cleaned up old file: ${file}`);
-      }
-    }
-  } catch (error) {
-    console.error('Cleanup error:', error);
-  }
-}
-
 // Start download endpoint
 app.post('/api/download/start', async (req, res) => {
   try {
@@ -376,19 +356,14 @@ app.post('/api/download/start', async (req, res) => {
               console.error('Post-download processing error:', error);
             }
 
-            // Schedule cleanup: if upload succeeded, remove local file after configured delay (default 1 hour),
-            // otherwise keep for 24 hours as a fallback
-            const cleanupDelay = uploadSucceeded && !canUseMtProto ? LOCAL_DELETE_AFTER_UPLOAD_MS : 24 * 60 * 60 * 1000;
+            // Schedule cleanup: if upload succeeded, remove local file after the short configured delay,
+            // otherwise keep for 12 hours as a fallback.
+            const cleanupDelay = uploadSucceeded ? LOCAL_DELETE_AFTER_UPLOAD_MS : 12 * 60 * 60 * 1000;
             setTimeout(async () => {
               try {
-                // remove local file to save space
-                try {
-                  if (!(uploadSucceeded && canUseMtProto) && fs.existsSync(filePath)) {
-                    await fs.remove(filePath);
-                    console.log(`Removed local file after upload: ${filePath}`);
-                  }
-                } catch (e) {
-                  console.error('Failed to remove local file during cleanup:', e);
+                if (fs.existsSync(filePath)) {
+                  await fs.remove(filePath);
+                  console.log(`Removed local file after cleanup delay: ${filePath}`);
                 }
 
                 torrent.destroy();
@@ -608,8 +583,16 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Start cleanup interval (every hour)
-setInterval(cleanupOldFiles, 60 * 60 * 1000);
+// Start cleanup loop in the same process as the downloader service.
+cleanup().catch((error) => {
+  console.error('Initial cleanup error:', error);
+});
+
+setInterval(() => {
+  cleanup().catch((error) => {
+    console.error('Scheduled cleanup error:', error);
+  });
+}, 60 * 60 * 1000);
 
 // Start server
 app.listen(PORT, () => {
