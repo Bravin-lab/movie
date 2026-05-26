@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const TORRENT_SERVICE_URL = process.env.TORRENT_SERVICE_URL || 'http://localhost:3001';
-const MAX_ALLOWED_QUALITY = 720;
+const MAX_ALLOWED_TORRENT_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const { magnetUrl, magnetUri, title, quality } = await request.json();
+    const { magnetUrl, magnetUri, title, quality, sizeBytes } = await request.json();
     const torrentUri = magnetUri || magnetUrl;
 
-    const qualityValue = Number.parseInt(quality ?? '', 10);
-    if (Number.isFinite(qualityValue) && qualityValue > MAX_ALLOWED_QUALITY) {
+    const parsedSizeBytes = Number(sizeBytes);
+    if (Number.isFinite(parsedSizeBytes) && parsedSizeBytes > MAX_ALLOWED_TORRENT_SIZE_BYTES) {
       return NextResponse.json(
-        { error: 'Only 720p and below are allowed by the developer due to server load.' },
+        { error: 'Only torrents 2GB and below are allowed by the developer due to Telegram upload limits.' },
         { status: 400 }
       );
     }

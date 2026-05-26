@@ -64,16 +64,10 @@ interface DownloadStatus {
   error?: string;
 }
 
-const MAX_ALLOWED_QUALITY = 720;
+const MAX_ALLOWED_TORRENT_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
 
-const parseQualityValue = (quality: string) => {
-  const match = quality.match(/\d+/);
-  return match ? Number.parseInt(match[0], 10) : Number.NaN;
-};
-
-const isAllowedQuality = (quality: string) => {
-  const qualityValue = parseQualityValue(quality);
-  return Number.isFinite(qualityValue) && qualityValue <= MAX_ALLOWED_QUALITY;
+const isAllowedTorrentSize = (sizeBytes: number) => {
+  return Number.isFinite(sizeBytes) && sizeBytes <= MAX_ALLOWED_TORRENT_SIZE_BYTES;
 };
 
 export default function DownloadSection(props: DownloadSectionProps) {
@@ -119,12 +113,12 @@ export default function DownloadSection(props: DownloadSectionProps) {
   };
 
   const getAllowedTorrents = (movie: YTSMovie) => {
-    return getAvailableTorrents(movie).filter((torrent) => isAllowedQuality(torrent.quality));
+    return getAvailableTorrents(movie).filter((torrent) => isAllowedTorrentSize(torrent.size_bytes));
   };
 
   const getDefaultQuality = (movie: YTSMovie) => {
     const allowedTorrents = getAllowedTorrents(movie);
-    const preferredTorrent = allowedTorrents.find((torrent) => parseQualityValue(torrent.quality) === MAX_ALLOWED_QUALITY);
+    const preferredTorrent = allowedTorrents.find((torrent) => torrent.quality === '720p');
 
     return preferredTorrent?.quality || allowedTorrents[0]?.quality || '720p';
   };
@@ -173,18 +167,17 @@ export default function DownloadSection(props: DownloadSectionProps) {
 
     setIsStartingDownload(true);
     try {
-      if (!isAllowedQuality(selectedQuality)) {
-        const message = 'Only 720p and below are allowed by the developer due to server load.';
-        setTorrentError(message);
-        throw new Error(message);
-      }
-
-      // Find the torrent with the selected quality
       const movie = ytsMovies[0]; // Assuming first movie is the best match
       const torrent = getAvailableTorrents(movie).find(t => t.quality === selectedQuality);
 
       if (!torrent) {
         throw new Error(`No ${selectedQuality} torrent available`);
+      }
+
+      if (!isAllowedTorrentSize(torrent.size_bytes)) {
+        const message = 'Only torrents 2GB and below are allowed by the developer due to Telegram upload limits.';
+        setTorrentError(message);
+        throw new Error(message);
       }
 
       const response = await fetch('/api/download', {
@@ -196,6 +189,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
           magnetUri: buildMagnetUri(torrent, movie.title),
           title: movie.title,
           quality: selectedQuality,
+          sizeBytes: torrent.size_bytes,
         }),
       });
 
@@ -341,7 +335,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
                   ))}
                 </select>
                 <p className="mt-2 text-sm text-amber-300">
-                  720p and below only. Higher qualities are disabled to avoid overloading the server.
+                  2GB and below only. Larger files are disabled.
                 </p>
               </div>
 
@@ -365,7 +359,7 @@ export default function DownloadSection(props: DownloadSectionProps) {
             </>
           ) : (
             <div className="text-center text-gray-400">
-              No torrents available within the allowed 720p limit for this movie.
+              movie coming soon.
             </div>
           )}
         </div>

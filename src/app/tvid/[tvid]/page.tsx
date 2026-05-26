@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import DownloadSection from "@/components/DownloadSection";
+import StreamSection from "@/components/StreamSection";
 
 interface Props {
   params: Promise<{ tvid: string }>;
@@ -37,6 +38,10 @@ export default function TVIdPage({ params }: Props) {
   return (
     <main className="text-white min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
       <h1 className="text-3xl font-bold mb-6">TV Show</h1>
+
+      <div className="mb-8">
+        <StreamSection tmdbId={Number(tvid)} mediaType="tv" title="TV Show" />
+      </div>
 
       <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
         <h2 className="text-2xl font-semibold mb-4">Download</h2>
