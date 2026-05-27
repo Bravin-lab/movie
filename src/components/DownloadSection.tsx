@@ -248,9 +248,10 @@ export default function DownloadSection(props: DownloadSectionProps) {
 
   const downloadFile = () => {
     if (!downloadId) return;
-    
-    // Use Next.js API proxy instead of direct VPS access
-    window.open(`/api/download/file/${downloadId}`, '_blank');
+    // Use Next.js API proxy instead of direct VPS access and pass a readable filename
+    const filename = downloadStatus?.fileName || `${title || 'movie'}.mp4`;
+    const safeName = encodeURIComponent(filename);
+    window.open(`/api/download/file/${downloadId}?name=${safeName}`, '_blank');
     
     // Or trigger download programmatically:
     // const link = document.createElement('a');

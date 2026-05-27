@@ -48,13 +48,29 @@ export async function GET(req: Request, context: RouteContext) {
       });
     }
 
-    const contentType =
-      upstream.headers.get('content-type') || 'application/octet-stream';
+    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+
+    // Derive filename: prefer explicit `name` query, then upstream Content-Disposition filename, then fallback
+    const upstreamDisposition = upstream.headers.get('content-disposition') || '';
+    const getFilenameFromHeader = (header: string | null) => {
+      if (!header) return null;
+      // Match filename*=UTF-8''name or filename="name" or filename=name
+      const m = /filename\*=UTF-8''([^;\n\r]+)/i.exec(header) || /filename="?([^";]+)"?/i.exec(header);
+      if (!m) return null;
+      try {
+        return decodeURIComponent(m[1].replace(/"/g, ''));
+      } catch {
+        return m[1].replace(/"/g, '');
+      }
+    };
+
+    const filenameFromHeader = getFilenameFromHeader(upstreamDisposition) || undefined;
+    const filename = name || filenameFromHeader || `movie-${downloadId}.mp4`;
+
     // Force download behavior: always return attachment so browsers download files
-    const contentDisposition = `attachment; filename="${name || `movie-${downloadId}.mp4`}"`;
+    const contentDisposition = `attachment; filename="${filename}"`;
     const contentLength = upstream.headers.get('content-length') || undefined;
-    const acceptRanges =
-      upstream.headers.get('accept-ranges') || (range ? 'bytes' : undefined);
+    const acceptRanges = upstream.headers.get('accept-ranges') || (range ? 'bytes' : undefined);
 
     return new Response(body, {
       status: upstream.status, // 200 or 206

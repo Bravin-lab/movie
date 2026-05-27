@@ -107,6 +107,14 @@ function getMtprotoCachePath(peer, messageId, fileName) {
   return path.join(DOWNLOAD_DIR, localName);
 }
 
+function isMtprotoTelegramEntry(entry) {
+  return Boolean(
+    entry &&
+    (entry.source === 'mtproto' ||
+      ((entry.peer || entry.mtprotoPeer) && (entry.message_id || entry.messageId || entry.mtprotoMessageId)))
+  );
+}
+
 async function cacheMtprotoMedia(downloadInfo, telegramKey, telegramEntry) {
   try {
     const cachedPath = downloadInfo.cachedPath || telegramEntry.localPath || telegramEntry.cachedPath || getMtprotoCachePath(downloadInfo.mtprotoPeer, downloadInfo.mtprotoMessageId, downloadInfo.fileName);
@@ -246,38 +254,36 @@ app.post('/api/download/start', async (req, res) => {
       telegramIndex[torrentUri] ||
       telegramIndex[rawTorrentUri] ||
       findTelegramEntry({ torrentUri, rawTorrentUri, fileName });
-    if (telegramEntry) {
+    if (isMtprotoTelegramEntry(telegramEntry)) {
       const downloadId = generateId();
 
-      if (telegramEntry.source === 'mtproto') {
-        const mtprotoPeer = telegramEntry.peer || telegramEntry.mtprotoPeer;
-        const mtprotoMessageId = telegramEntry.message_id || telegramEntry.messageId || telegramEntry.mtprotoMessageId;
-        const fileNameToUse = telegramEntry.file_name || fileName;
-        const telegramKey = requestKey || normalizeLookupText(telegramEntry.infoHash || extractMagnetParts(torrentUri).infoHash || fileNameToUse || torrentUri);
-        const cachedPath = telegramEntry.localPath || telegramEntry.cachedPath || getMtprotoCachePath(mtprotoPeer, mtprotoMessageId, fileNameToUse);
-        const cacheExists = fs.existsSync(cachedPath);
+      const mtprotoPeer = telegramEntry.peer || telegramEntry.mtprotoPeer;
+      const mtprotoMessageId = telegramEntry.message_id || telegramEntry.messageId || telegramEntry.mtprotoMessageId;
+      const fileNameToUse = telegramEntry.file_name || fileName;
+      const telegramKey = requestKey || normalizeLookupText(telegramEntry.infoHash || extractMagnetParts(torrentUri).infoHash || fileNameToUse || torrentUri);
+      const cachedPath = telegramEntry.localPath || telegramEntry.cachedPath || getMtprotoCachePath(mtprotoPeer, mtprotoMessageId, fileNameToUse);
+      const cacheExists = fs.existsSync(cachedPath);
 
-        const downloadInfo = {
-          id: downloadId,
-          source: 'mtproto',
-          mtprotoPeer,
-          mtprotoMessageId,
-          fileName: fileNameToUse,
-          cachedPath: cacheExists ? cachedPath : undefined,
-          size: telegramEntry.size,
-          startTime: Date.now(),
-          status: cacheExists ? 'completed' : 'downloading',
-          progress: cacheExists ? 100 : 0
-        };
-        activeDownloads.set(downloadId, downloadInfo);
+      const downloadInfo = {
+        id: downloadId,
+        source: 'mtproto',
+        mtprotoPeer,
+        mtprotoMessageId,
+        fileName: fileNameToUse,
+        cachedPath: cacheExists ? cachedPath : undefined,
+        size: telegramEntry.size,
+        startTime: Date.now(),
+        status: cacheExists ? 'completed' : 'downloading',
+        progress: cacheExists ? 100 : 0
+      };
+      activeDownloads.set(downloadId, downloadInfo);
 
-        if (!cacheExists) {
-          void cacheMtprotoMedia(downloadInfo, telegramKey, telegramEntry);
-          return res.json({ downloadId, message: 'File is being cached from Telegram (MTProto)', source: 'mtproto' });
-        }
-
-        return res.json({ downloadId, message: 'File available on Telegram (MTProto), using cached file', source: 'mtproto' });
+      if (!cacheExists) {
+        void cacheMtprotoMedia(downloadInfo, telegramKey, telegramEntry);
+        return res.json({ downloadId, message: 'File is being cached from Telegram (MTProto)', source: 'mtproto' });
       }
+
+      return res.json({ downloadId, message: 'File available on Telegram (MTProto), using cached file', source: 'mtproto' });
     }
 
     const downloadId = generateId();
@@ -367,8 +373,27 @@ app.post('/api/download/start', async (req, res) => {
                 }
 
                 torrent.destroy();
-                activeDownloads.delete(downloadId);
-                console.log(`Cleaned up download: ${downloadId}`);
+
+                if (uploadSucceeded) {
+                  activeDownloads.set(downloadId, {
+                    id: downloadId,
+                    source: 'mtproto',
+                    fileName: downloadInfo.fileName,
+                    mtprotoPeer: downloadInfo.mtprotoPeer,
+                    mtprotoMessageId: downloadInfo.mtprotoMessageId,
+                    cachedPath: downloadInfo.cachedPath || filePath,
+                    size: downloadInfo.size,
+                    startTime: downloadInfo.startTime,
+                    status: 'completed',
+                    progress: 100,
+                    speed: 0,
+                    peers: 0,
+                  });
+                  console.log(`Retained Telegram cache metadata for download: ${downloadId}`);
+                } else {
+                  activeDownloads.delete(downloadId);
+                  console.log(`Cleaned up download: ${downloadId}`);
+                }
               } catch (error) {
                 console.error('Cleanup error:', error);
               }
