@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { FaDownload, FaCheck, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { FiDownload } from 'react-icons/fi';
+import { FaCheck, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 
 export type DownloadSectionProps = {
   imdbId: string;
@@ -341,21 +342,21 @@ export default function DownloadSection(props: DownloadSectionProps) {
               </div>
 
               <button
+                type="button"
                 onClick={startDownload}
                 disabled={isStartingDownload}
-                className="w-full px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center justify-center gap-3 shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={isStartingDownload ? 'Starting download' : `Start download in ${selectedQuality}`}
+                title={isStartingDownload ? 'Starting download' : `Start download in ${selectedQuality}`}
+                className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:from-emerald-400 hover:to-green-500 focus:outline-none focus:ring-2 focus:ring-emerald-300/80 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isStartingDownload ? (
-                  <>
-                    <FaSpinner className="animate-spin" />
-                    Starting Download...
-                  </>
+                  <FaSpinner className="animate-spin text-xl" aria-hidden="true" />
                 ) : (
-                  <>
-                    <FaDownload />
-                    Start Download ({selectedQuality})
-                  </>
+                  <FiDownload className="text-2xl" aria-hidden="true" />
                 )}
+                <span className="sr-only">
+                  {isStartingDownload ? 'Starting download' : `Start download in ${selectedQuality}`}
+                </span>
               </button>
             </>
           ) : (
@@ -450,10 +451,12 @@ export default function DownloadSection(props: DownloadSectionProps) {
           {downloadStatus.status === 'completed' && (
             <button
               onClick={downloadFile}
-              className="w-full px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center justify-center gap-3 shadow-lg shadow-green-500/50 focus:outline-none focus:ring-2 focus:ring-green-400 hover:scale-105"
+              type="button"
+              aria-label="Download finished file"
+              title="Download finished file"
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-xl shadow-emerald-500/30 transition-all duration-300 hover:scale-105 hover:from-emerald-400 hover:to-green-500 focus:outline-none focus:ring-2 focus:ring-emerald-300/80"
             >
-              <FaDownload />
-              Download File
+              <FiDownload className="text-2xl" aria-hidden="true" />
             </button>
           )}
 

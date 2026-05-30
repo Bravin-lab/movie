@@ -40,9 +40,9 @@ export default function DownloadsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen p-8 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-4xl font-bold">Active Downloads</h1>
+    <main className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-4 py-8 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
+        <h1 className="text-3xl font-bold sm:text-4xl">Active Downloads</h1>
 
         {loading ? (
           <div className="text-gray-300">Loading...</div>
@@ -50,7 +50,7 @@ export default function DownloadsPage() {
           <div className="bg-white/5 p-6 rounded-lg">No active downloads.</div>
         ) : (
           downloads.map((d) => (
-            <div key={d.id} className="bg-white/5 p-6 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div key={d.id} className="flex flex-col gap-4 rounded-xl bg-white/5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
               <div>
                 <div className="font-semibold text-lg">{d.fileName}</div>
                 <div className="text-sm text-gray-300">Status: {d.status} — {Number(d.progress).toFixed(1)}%</div>

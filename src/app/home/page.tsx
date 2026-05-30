@@ -175,67 +175,75 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div className="relative p-8 max-w-7xl mx-auto">
-      <header
-        className="mb-12 text-center bg-cover bg-center bg-no-repeat p-6 sm:p-12 rounded-lg relative"
-        style={{ backgroundImage: trending.length > 0 ? `url(https://image.tmdb.org/t/p/original${trending[Math.floor(Math.random() * trending.length)].poster_path})` : undefined }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-indigo-900 to-black opacity-80"></div>
-        <h1 className="relative text-4xl sm:text-6xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-text-flicker">
-          Welcome.
-        </h1>
-        <p className="relative text-lg sm:text-2xl max-w-xl mx-auto mb-6 text-gray-300 drop-shadow-lg">
-          Millions of movies, TV shows and people to discover. Explore now.
-        </p>
-        <form onSubmit={handleSearchSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 relative z-10">
-          <div className="relative flex-grow">
-            <input
-              type="text"
-              placeholder="Search movies, TV shows, people..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 rounded-md sm:rounded-l-md border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-600 pr-10"
-            />
-            <FiSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition"
-                aria-label="Clear search"
-              >
-                <FiX size={18} />
-              </button>
-            )}
+      <div className="relative w-full px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <header
+          className="relative min-h-[calc(100vh-9rem)] w-full overflow-hidden rounded-3xl bg-cover bg-center bg-no-repeat shadow-2xl shadow-purple-950/30"
+          style={{ backgroundImage: trending.length > 0 ? `url(https://image.tmdb.org/t/p/original${trending[Math.floor(Math.random() * trending.length)].poster_path})` : undefined }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-950/95 via-indigo-950/85 to-black/95"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(168,85,247,0.22),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(34,211,238,0.18),_transparent_30%)]"></div>
+
+          <div className="relative z-10 flex min-h-[inherit] flex-col justify-center px-4 py-10 sm:px-8 lg:px-16">
+            <div className="max-w-4xl">
+              <h1 className="text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 animate-text-flicker sm:text-6xl lg:text-7xl">
+                Welcome.
+              </h1>
+              <p className="mt-4 max-w-2xl text-base text-gray-200 drop-shadow-lg sm:text-xl lg:text-2xl">
+                Millions of movies, TV shows and people to discover. Explore now.
+              </p>
+
+              <form onSubmit={handleSearchSubmit} className="mt-8 flex w-full max-w-2xl flex-col gap-3 sm:flex-row">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search movies, TV shows, people..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 pr-11 text-white shadow-lg shadow-black/20 outline-none backdrop-blur-sm transition placeholder:text-gray-400 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/30"
+                  />
+                  <FiSearch className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={handleClearSearch}
+                      className="absolute right-9 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-white"
+                      aria-label="Clear search"
+                    >
+                      <FiX size={18} />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-2xl bg-gradient-to-r from-indigo-500 to-cyan-500 px-5 py-3 font-semibold text-white shadow-lg shadow-cyan-950/30 transition hover:from-indigo-400 hover:to-cyan-400 sm:w-auto"
+                >
+                  Search
+                </button>
+              </form>
+
+              <div className="mt-8 max-w-2xl">
+                <label htmlFor="genre-select" className="mb-3 block text-base font-semibold text-white sm:text-lg">
+                  🎬 Filter by Genre
+                </label>
+                <GenreDropdown
+                  genres={genres}
+                  selectedGenre={selectedGenre}
+                  onChange={(genreId) => setSelectedGenre(genreId)}
+                />
+              </div>
+            </div>
           </div>
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-4 py-2 bg-indigo-600 rounded-md sm:rounded-r-md hover:bg-indigo-700 transition"
-          >
-            Search
-          </button>
-        </form>
-        <div className="mt-6 max-w-md mx-auto relative z-10">
-          <label htmlFor="genre-select" className="block mb-3 text-lg font-semibold text-white">
-            🎬 Filter by Genre
-          </label>
-          <GenreDropdown
-            genres={genres}
-            selectedGenre={selectedGenre}
-            onChange={(genreId) => setSelectedGenre(genreId)}
-          />
-        </div>
-      </header>
+        </header>
 
       {isSearching ? (
-        <section>
-          <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+        <section className="mt-10">
+          <h2 className="text-3xl font-extrabold mb-6 border-b-4 border-indigo-600 inline-block pb-2 sm:text-4xl">
             Search Results
           </h2>
           {moviesToDisplay.length === 0 ? (
             <p className="text-center text-gray-400">No results found.</p>
           ) : (
-            <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
+            <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
               {moviesToDisplay.map((movie) => (
                 <motion.div
                   key={movie.id}
@@ -243,7 +251,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5 }}
                   whileHover={{ scale: 1.05, y: -5 }}
-                  className="min-w-[180px] cursor-pointer rounded-lg overflow-hidden bg-gray-800 shadow-lg"
+                  className="min-w-[160px] cursor-pointer overflow-hidden rounded-2xl bg-gray-800 shadow-lg sm:min-w-[180px]"
                   title={movie.title}
                   onClick={() => handleMovieClick(movie.id)}
                 >
@@ -278,11 +286,11 @@ export default function HomePage() {
         </section>
       ) : (
         <>
-          <section className="mb-12">
-            <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+          <section className="mt-10 mb-12 px-4 sm:px-0">
+            <h2 className="text-3xl font-extrabold mb-6 border-b-4 border-indigo-600 inline-block pb-2 sm:text-4xl">
               Trending Movies
             </h2>
-            <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
+            <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
               {trending.map((movie) => (
                 <motion.div
                   key={movie.id}
@@ -290,7 +298,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5 }}
                   whileHover={{ scale: 1.05, y: -5 }}
-                  className="min-w-[180px] cursor-pointer rounded-lg overflow-hidden bg-gray-800 shadow-lg"
+                  className="min-w-[160px] cursor-pointer overflow-hidden rounded-2xl bg-gray-800 shadow-lg sm:min-w-[180px]"
                   title={movie.title}
                   onClick={() => handleMovieClick(movie.id)}
                 >
@@ -319,11 +327,11 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section className="mb-12">
-            <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+          <section className="mb-12 px-4 sm:px-0">
+            <h2 className="text-3xl font-extrabold mb-6 border-b-4 border-indigo-600 inline-block pb-2 sm:text-4xl">
               Popular Movies
             </h2>
-            <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
+            <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
               {popular.map((movie) => (
                 <motion.div
                   key={movie.id}
@@ -331,7 +339,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5 }}
                   whileHover={{ scale: 1.05, y: -5 }}
-                  className="min-w-[180px] cursor-pointer rounded-lg overflow-hidden bg-gray-800 shadow-lg"
+                  className="min-w-[160px] cursor-pointer overflow-hidden rounded-2xl bg-gray-800 shadow-lg sm:min-w-[180px]"
                   title={movie.title}
                   onClick={() => handleMovieClick(movie.id)}
                 >
@@ -360,11 +368,11 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section>
-            <h2 className="text-4xl font-extrabold mb-8 border-b-4 border-indigo-600 inline-block pb-2">
+          <section className="mb-12 px-4 sm:px-0">
+            <h2 className="text-3xl font-extrabold mb-6 border-b-4 border-indigo-600 inline-block pb-2 sm:text-4xl">
               Upcoming Movies
             </h2>
-            <div className="flex overflow-x-auto space-x-8 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
+            <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-thumb-indigo-600 scrollbar-track-gray-800">
               {upcoming.map((movie) => (
                 <motion.div
                   key={movie.id}
@@ -372,7 +380,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.5 }}
                   whileHover={{ scale: 1.05, y: -5 }}
-                  className="min-w-[180px] cursor-pointer rounded-lg overflow-hidden bg-gray-800 shadow-lg"
+                  className="min-w-[160px] cursor-pointer overflow-hidden rounded-2xl bg-gray-800 shadow-lg sm:min-w-[180px]"
                   title={movie.title}
                   onClick={() => handleMovieClick(movie.id)}
                 >

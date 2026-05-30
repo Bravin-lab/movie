@@ -97,8 +97,7 @@ export default function TrendingTVShowsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-    <main className="p-10 text-white max-w-screen-xl mx-auto rounded-lg shadow-xl relative overflow-hidden">
+    <main className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20"></div>
       <motion.div
         className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
@@ -116,10 +115,10 @@ export default function TrendingTVShowsPage() {
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       ></motion.div>
 
-      <h1 className="text-5xl font-extrabold mb-8 relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-text-flicker">
+      <h1 className="relative z-10 mb-8 text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-text-flicker sm:text-5xl">
         Trending TV Shows
       </h1>
-      <form onSubmit={handleSearchSubmit} className="max-w-md mx-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-8 relative z-10">
+      <form onSubmit={handleSearchSubmit} className="relative z-10 mb-8 flex max-w-2xl flex-col gap-3 sm:flex-row">
         <div className="relative flex-grow">
           <input
             type="text"
@@ -156,7 +155,7 @@ export default function TrendingTVShowsPage() {
           </button>
         )}
       </form>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 relative z-10">
+      <div className="relative z-10 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
         {tvShows.map((show) => (
           <Link key={show.id} href={`/tv/${show.id}`} className="block rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 hover:scale-105">
             {show.poster_path ? (
@@ -179,6 +178,5 @@ export default function TrendingTVShowsPage() {
         ))}
       </div>
     </main>
-    </div>
   );
 }

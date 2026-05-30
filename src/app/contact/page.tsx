@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen relative p-10 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden">
+    <main className="min-h-screen relative w-full overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20"></div>
       <motion.div
         className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
@@ -24,7 +24,7 @@ export default function ContactPage() {
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       ></motion.div>
 
-      <div className="relative z-10 max-w-6xl mx-auto flex flex-col lg:flex-row gap-12">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 lg:flex-row">
         {/* Left side: Contact info */}
         <motion.section
           initial={{ opacity: 0, x: -50 }}

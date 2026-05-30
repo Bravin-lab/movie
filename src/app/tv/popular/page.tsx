@@ -37,10 +37,10 @@ export default function PopularTVShowsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
-    <main className="p-10 max-w-screen-xl mx-auto">
-      <h1 className="text-5xl font-bold mb-8">Popular TV Shows</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+    <main className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-4 py-8 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl">
+        <h1 className="mb-8 text-3xl font-bold sm:text-5xl">Popular TV Shows</h1>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
         {tvShows.map((show) => (
           <Link key={show.id} href={`/tv/${show.id}`}>
             <a className="block rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition">
@@ -63,8 +63,8 @@ export default function PopularTVShowsPage() {
             </a>
           </Link>
         ))}
+        </div>
       </div>
     </main>
-    </div>
   );
 }

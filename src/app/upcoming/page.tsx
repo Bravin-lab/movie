@@ -43,8 +43,7 @@ export default function UpcomingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-    <main className="p-10 text-white max-w-screen-xl mx-auto rounded-lg shadow-xl relative overflow-hidden">
+    <main className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20"></div>
       <motion.div
         className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
@@ -65,7 +64,7 @@ export default function UpcomingPage() {
       <h1 className="text-5xl font-extrabold mb-10 border-b-4 border-indigo-600 inline-block pb-3 relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-text-flicker">
         Upcoming Movies
       </h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8 relative z-10">
+      <div className="relative z-10 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5 xl:gap-8">
         {upcoming.map((movie) => (
           <motion.div
             key={movie.id}
@@ -101,6 +100,5 @@ export default function UpcomingPage() {
         ))}
       </div>
     </main>
-    </div>
   );
 }

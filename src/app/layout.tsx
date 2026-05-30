@@ -45,7 +45,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-white`}>
         <UserProvider>
           <Navbar />
           {children}

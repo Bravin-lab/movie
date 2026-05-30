@@ -36,9 +36,6 @@ async function cleanup() {
         continue;
       }
 
-      // Only act on regular files (skip directories)
-      if (!stats.isFile()) continue;
-
       // Check if file is older than max age
       if (now - stats.mtime.getTime() > maxAge) {
         const size = stats.size;

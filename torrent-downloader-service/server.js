@@ -107,6 +107,10 @@ function getMtprotoCachePath(peer, messageId, fileName) {
   return path.join(DOWNLOAD_DIR, localName);
 }
 
+function getTorrentCleanupTarget(filePath) {
+  return filePath;
+}
+
 function isMtprotoTelegramEntry(entry) {
   return Boolean(
     entry &&
@@ -367,9 +371,11 @@ app.post('/api/download/start', async (req, res) => {
             const cleanupDelay = uploadSucceeded ? LOCAL_DELETE_AFTER_UPLOAD_MS : 12 * 60 * 60 * 1000;
             setTimeout(async () => {
               try {
-                if (fs.existsSync(filePath)) {
-                  await fs.remove(filePath);
-                  console.log(`Removed local file after cleanup delay: ${filePath}`);
+                const cleanupTarget = getTorrentCleanupTarget(filePath);
+
+                if (fs.existsSync(cleanupTarget)) {
+                  await fs.remove(cleanupTarget);
+                  console.log(`Removed local download after cleanup delay: ${cleanupTarget}`);
                 }
 
                 torrent.destroy();

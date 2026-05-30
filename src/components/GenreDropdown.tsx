@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface Genre {
   id: number;
@@ -32,10 +33,16 @@ const fixedGenres: Genre[] = [
 export default function GenreDropdown({ genres = [], selectedGenre, onChange }: GenreDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        !buttonRef.current?.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -62,24 +69,40 @@ export default function GenreDropdown({ genres = [], selectedGenre, onChange }: 
   const selectedGenreName = selectedGenre ? allGenres.find(g => g.id === selectedGenre)?.name : "All Genres";
 
   return (
-    <div className="relative inline-block w-full max-w-md" ref={dropdownRef} style={{ zIndex: 9999, position: 'relative' }}>
+    <div className="relative inline-block w-full max-w-md" ref={dropdownRef}>
       <button
         type="button"
+        ref={buttonRef}
         className="w-full px-4 py-2 text-left rounded-md border border-gray-600 bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen((s) => {
+            const next = !s;
+            if (next && buttonRef.current) {
+              const rect = buttonRef.current.getBoundingClientRect();
+              setMenuStyle({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+            }
+            return next;
+          });
+        }}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
         {selectedGenreName || "All Genres"}
         <span className="float-right">&#9662;</span>
       </button>
-      {isOpen && (
+      {isOpen && menuStyle && createPortal(
         <ul
           tabIndex={-1}
           role="listbox"
           aria-activedescendant={selectedGenre ? `genre-${selectedGenre}` : undefined}
-          className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-800 py-1 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-          style={{ zIndex: 10000, position: 'absolute' }}
+          className="max-h-60 overflow-auto rounded-md bg-gray-800 py-1 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+          style={{
+            position: "absolute",
+            top: menuStyle.top + "px",
+            left: menuStyle.left + "px",
+            width: menuStyle.width + "px",
+            zIndex: 100000
+          }}
         >
           <li
             key="all-genres"
@@ -103,7 +126,8 @@ export default function GenreDropdown({ genres = [], selectedGenre, onChange }: 
               {genre.name}
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body
       )}
     </div>
   );
